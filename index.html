@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>الموقع</title>
+<meta name="description" content="الموقع">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&family=Tajawal:wght@300;400;500;700&family=Almarai:wght@400;700;800&family=Reem+Kufi:wght@400;700&family=Aref+Ruqaa:wght@400;700&family=Lalezar&family=Markazi+Text:wght@400;600;700&family=Amiri:wght@400;700&family=IBM+Plex+Sans+Arabic:wght@400;600;700&family=Noto+Kufi+Arabic:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<div class="topbar">
+  <div class="topbar-side">
+    <button class="burger" id="burger" aria-label="القائمة"><span></span><span></span><span></span></button>
+  </div>
+  <div class="brand"><img src="https://karftzjwbmknyditmuoc.supabase.co/storage/v1/object/public/Icon/Asber.png" alt="الشعار" class="brand-logo"></div>
+  <div class="topbar-side topbar-actions" style="justify-content:flex-end;">
+    <button class="topbar-icon-btn" id="searchBtn" title="بحث"></button>
+    <button class="topbar-icon-btn" id="askBtn" title="اطرح سؤالك"></button>
+    <span class="topbar-sep"></span>
+    <span id="publishBadge" class="publish-badge" style="display:none;"></span>
+    <button class="topbar-icon-btn" id="saveBtn" title="حفظ" style="display:none;"></button>
+    <button class="topbar-icon-btn" id="inboxBtn" title="صندوق الأسئلة" style="display:none;"></button>
+    <button class="topbar-icon-btn" id="authBtn" title="تسجيل الدخول"></button>
+  </div>
+</div>
+
+<div id="editToolbar" class="edit-toolbar"></div>
+
+<div class="overlay" id="overlay"></div>
+<div id="lockScreen" class="lock-screen">
+  <div class="auth-screen">
+    <div class="auth-body">
+      <div id="lockFormWrap">
+        <div class="auth-head">
+          <div class="auth-title">تسجيل دخول المؤسس</div>
+          <div class="auth-sub">سجّل الدخول بالبريد المصرح له لإدارة الموقع.</div>
+        </div>
+        <div class="steps">
+          <span class="dot active" id="lockDot1"></span>
+          <span class="dot" id="lockDot2"></span>
+        </div>
+        <div id="lockStep1">
+          <div class="fields-group">
+            <div class="field-row">
+              <input type="email" id="lockEmailInput" class="fi" placeholder="بريدك الإلكتروني">
+            </div>
+          </div>
+          <button class="btn-main" id="lockSendBtn">
+            <span id="lockSendText">إرسال رمز الدخول</span>
+            <span class="sp" id="lockSendSp"></span>
+          </button>
+        </div>
+        <div id="lockStep2" style="display:none;">
+          <input type="text" id="lockCodeInput" class="otp-fi" placeholder="000000" inputmode="numeric" maxlength="8">
+          <button class="btn-main" id="lockVerifyBtn">
+            <span id="lockVerifyText">تأكيد</span>
+            <span class="sp" id="lockVerifySp"></span>
+          </button>
+          <div class="resend-row">لم يصلك الرمز؟ <button class="lnk" id="lockCodeBack">رجوع وإعادة المحاولة</button></div>
+        </div>
+        <div class="links-row">
+          <span></span>
+          <button class="lnk dim" id="lockCancelBtn">إلغاء</button>
+        </div>
+      </div>
+      <div id="lockDeniedWrap" style="display:none;">
+        <div class="auth-head">
+          <div class="auth-title">غير مصرّح</div>
+          <div class="auth-sub">البريد <b id="deniedEmail"></b> غير مصرح له بالوصول إلى لوحة التحكم.</div>
+        </div>
+        <button class="btn-main" id="lockLogoutBtn">تسجيل الخروج وتجربة بريد آخر</button>
+        <div class="links-row">
+          <span></span>
+          <button class="lnk dim" id="lockDeniedClose">إغلاق</button>
+        </div>
+      </div>
+      <div class="vm-row" id="lockStatus" style="text-align:center;"></div>
+    </div>
+  </div>
+</div>
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-inner" id="sidebarInner">
+    <div class="menu-tree" id="menuTree"></div>
+  </div>
+</aside>
+
+<main id="mainContent"></main>
+
+<footer id="siteFooter"></footer>
+
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <h4 id="modalTitle">إنشاء صفحة</h4>
+    <input type="text" id="modalInput" placeholder="اسم الصفحة">
+    <div class="type-select" id="typeSelect">
+      <button type="button" class="type-opt active" data-type="content" id="typeContentBtn"></button>
+      <button type="button" class="type-opt" data-type="qa" id="typeQaBtn"></button>
+    </div>
+    <select id="modalParent"></select>
+    <div class="modal-actions">
+      <button id="modalCancel">إلغاء</button>
+      <button class="primary" id="modalConfirm">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="videoModalBg">
+  <div class="modal">
+    <h4>إدراج رابط</h4>
+    <input type="text" id="videoUrlInput" placeholder="الصق رابط يوتيوب، رابط فيديو مباشر، أو أي رابط آخر">
+    <div class="modal-actions">
+      <button id="videoCancel">إلغاء</button>
+      <button class="primary" id="videoConfirm">إدراج</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="authModalBg">
+  <div class="modal">
+    <h4>تسجيل الدخول</h4>
+    <div id="authStep1">
+      <input type="email" id="authEmailInput" placeholder="بريدك الإلكتروني">
+      <div class="modal-actions">
+        <button id="authCancel">إلغاء</button>
+        <button class="primary" id="authSend">إرسال رمز الدخول</button>
+      </div>
+    </div>
+    <div id="authStep2" style="display:none;">
+      <p class="empty-hint" style="margin-bottom:10px;">أدخل الرمز المكوّن من 6 أرقام المرسل إلى بريدك.</p>
+      <input type="text" id="authCodeInput" placeholder="رمز الدخول" inputmode="numeric" maxlength="8">
+      <div class="modal-actions">
+        <button id="authCodeCancel">إلغاء</button>
+        <button class="primary" id="authVerify">تأكيد</button>
+      </div>
+    </div>
+    <div class="empty-hint" id="authStatus" style="margin-top:10px;"></div>
+  </div>
+</div>
+
+<div class="modal-bg" id="accountModalBg">
+  <div class="modal">
+    <h4>حسابك</h4>
+    <div class="empty-hint" id="accountEmailDisplay" style="margin-bottom:14px;"></div>
+    <div class="modal-actions">
+      <button id="accountCancel">إغلاق</button>
+      <button class="primary" id="accountLogoutBtn">تسجيل الخروج</button>
+    </div>
+  </div>
+</div>
+
+<div class="fullpage-bg" id="askModalBg">
+  <div class="fullpage-header">
+    <h4>اطرح سؤالك</h4>
+    <button class="icon-btn" id="askCancel"></button>
+  </div>
+  <div class="fullpage-body">
+    <textarea id="askQuestionInput" class="fullpage-input" rows="6" placeholder="اكتب سؤالك كاملًا هنا..." style="resize:vertical;"></textarea>
+    <div class="empty-hint" id="askStatus" style="margin:10px 0 14px;"></div>
+    <button class="text-btn primary" id="askSend" style="width:100%;">إرسال السؤال</button>
+    <div id="myQuestionsWrap"></div>
+  </div>
+</div>
+
+<div class="fullpage-bg" id="searchModalBg">
+  <div class="fullpage-header">
+    <h4>البحث في الموقع</h4>
+    <button class="icon-btn" id="searchCancel"></button>
+  </div>
+  <div class="fullpage-body">
+    <input type="text" id="searchInput" class="fullpage-input" placeholder="اكتب أي كلمة أو جملة...">
+    <div id="searchResults" class="search-results"></div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
+<script src="js/script.js"></script>
+</body>
+</html>
