@@ -50,7 +50,10 @@ const ICONS = {
   focus: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M4 9V5a1 1 0 0 1 1-1h4M20 9V5a1 1 0 0 0-1-1h-4M4 15v4a1 1 0 0 0 1 1h4M20 15v4a1 1 0 0 1-1 1h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   publish: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M12 19V6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><path d="M6 11l6-6 6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M5 19h14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>',
   eye: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
-  grip: '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg>'
+  grip: '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg>',
+  team: '<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="8.5" r="2.3" fill="none" stroke="currentColor" stroke-width="2" opacity=".7"/><path d="M16 13.5c2.3.3 3.8 2 3.8 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".7"/></svg>',
+  gamepad: '<svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="8" width="18" height="9.5" rx="4.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7.2" y1="11.5" x2="7.2" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5.4" y1="13.25" x2="9" y2="13.25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="12.2" r="1" fill="currentColor"/><circle cx="17.3" cy="14.4" r="1" fill="currentColor"/></svg>',
+  arrowEnd: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
 const STORAGE_KEY = 'offline_site_data_v6';
@@ -137,7 +140,7 @@ function save(statusHandle){
   }
 }
 
-let pendingQaId = null;
+let pendingQaNumber = null;
 let state = loadLocal();
 applyUrlToState();
 
@@ -492,6 +495,18 @@ function buildSearchIndex(){
           const aText=stripHtml(item.a||'');
           index.push({ pageId:p.id, pageTitle:p.title, kind:'qa', question:qText, text:(qText+' '+aText).trim() });
         });
+      } else if(type==='chars'){
+        (p.characters||[]).forEach(ch=>{
+          const bioText=stripHtml(Array.isArray(ch.bio)?ch.bio.join(' '):(ch.bio||''));
+          const abilityText=stripHtml(Array.isArray(ch.ability)?ch.ability.join(' '):(ch.ability||''));
+          const nm=(ch.name||'')+' '+(ch.enName||'');
+          index.push({ pageId:p.id, pageTitle:p.title, kind:'char', charId:ch.id, charName:nm.trim(), text:(nm+' '+bioText+' '+abilityText).trim() });
+        });
+      } else if(type==='game'){
+        (p.sections||[]).forEach(s=>{
+          const bodyText=stripHtml(s.body||'');
+          index.push({ pageId:p.id, pageTitle:p.title, kind:'gamesec', secId:s.id, secTitle:s.title||'', text:((s.title||'')+' '+bodyText).trim() });
+        });
       } else {
         const contentText=stripHtml(p.content||'');
         index.push({ pageId:p.id, pageTitle:p.title, kind:'page', text:(p.title+' '+contentText).trim() });
@@ -541,6 +556,35 @@ function runSearch(query){
   });
 }
 
+/* توهيج مؤقت لعنصر عند القفز إليه من نتائج البحث */
+function flashHighlight(el){
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  el.style.transition='background .4s';
+  el.style.background='rgba(45,212,191,.18)';
+  setTimeout(()=>{ el.style.background=''; }, 1600);
+}
+
+/* يبحث عن أول عنصر يحتوي على نص المطابقة داخل صندوق المحتوى، ويقفز إليه
+   مباشرة بدل الاكتفاء بفتح الصفحة من الأعلى. */
+function scrollToTextMatch(query){
+  const q=(query||'').trim().toLowerCase();
+  if(!q) return false;
+  const boxes=document.querySelectorAll('#mainContent .content-box, #mainContent .ch-desc, #mainContent .game-sec-body');
+  for(const box of boxes){
+    const walker=document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
+    let node;
+    while(node=walker.nextNode()){
+      if(node.textContent.toLowerCase().includes(q)){
+        const target=(node.parentElement && node.parentElement!==box) ? node.parentElement : box;
+        flashHighlight(target);
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
 function goToSearchResult(m){
   searchModalBg.classList.remove('show');
   state.activePage=m.pageId;
@@ -551,14 +595,25 @@ function goToSearchResult(m){
       for(const qEl of items){
         if(qEl.textContent.includes(m.question)){
           qEl.click();
-          const item=qEl.closest('.qa-item');
-          item.scrollIntoView({behavior:'smooth', block:'center'});
-          item.style.transition='background .4s';
-          item.style.background='rgba(45,212,191,.15)';
-          setTimeout(()=>{ item.style.background=''; }, 1600);
+          flashHighlight(qEl.closest('.qa-item'));
           break;
         }
       }
+    }, 60);
+  } else if(m.kind==='char' && m.charId){
+    setTimeout(()=>{
+      const el=document.querySelector(`.char-card[data-char-id="${m.charId}"]`);
+      if(el) flashHighlight(el); else window.scrollTo({top:0, behavior:'smooth'});
+    }, 60);
+  } else if(m.kind==='gamesec' && m.secId){
+    setTimeout(()=>{
+      const el=document.querySelector(`.game-section[data-sec-id="${m.secId}"]`);
+      if(el) flashHighlight(el); else window.scrollTo({top:0, behavior:'smooth'});
+    }, 60);
+  } else if(m.kind==='page' && searchInputEl && searchInputEl.value.trim()){
+    const q=searchInputEl.value.trim();
+    setTimeout(()=>{
+      if(!scrollToTextMatch(q)) window.scrollTo({top:0, behavior:'smooth'});
     }, 60);
   } else {
     setTimeout(()=> window.scrollTo({top:0, behavior:'smooth'}), 60);
@@ -627,19 +682,27 @@ function ensureQaIds(pages){
     if(p.type==='qa' && p.qa && p.qa.length){
       p.qa.forEach(item=>{ if(!item.id){ item.id=uid(); changed=true; } });
     }
+    if(p.type==='chars' && p.characters && p.characters.length){
+      p.characters.forEach(ch=>{ if(!ch.id){ ch.id=uid(); changed=true; } });
+    }
+    if(p.type==='game' && p.sections && p.sections.length){
+      p.sections.forEach(s=>{ if(!s.id){ s.id=uid(); changed=true; } });
+    }
     if(p.children && p.children.length){ if(ensureQaIds(p.children)) changed=true; }
   });
   return changed;
 }
-function buildPagePath(p, qaItem){
+function buildPagePath(p, qaItem, qaIndex){
   let path = '/p/'+p.id+(slugify(p.title)?('-'+slugify(p.title)):'');
-  if(qaItem) path += '/'+qaItem.id+(slugify(qaItem.q)?('-'+slugify(qaItem.q)):'');
+  if(qaItem && typeof qaIndex==='number') path += '/'+(qaIndex+1);
   return path;
 }
 function parsePathIds(){
   const parts = location.pathname.split('/').filter(Boolean);
   if(parts[0]!=='p' || !parts[1]) return null;
-  return { pageId: parts[1].split('-')[0], qaId: parts[2] ? parts[2].split('-')[0] : null };
+  const qaSeg = parts[2] || null;
+  const qaNumber = qaSeg && /^\d+$/.test(qaSeg) ? parseInt(qaSeg,10) : null;
+  return { pageId: parts[1].split('-')[0], qaNumber };
 }
 function setMetaTag(attr, val, content){
   let m = document.querySelector(`meta[${attr}="${val}"]`);
@@ -659,10 +722,10 @@ function setFaqSchema(entries){
 }
 function removeFaqSchema(){ const e=document.getElementById('faqSchema'); if(e) e.remove(); }
 /* يحدّث رابط المتصفح + العنوان + الوصف + بيانات الأسئلة الشائعة المنظّمة، دون إعادة تحميل الصفحة */
-function updateUrlAndMeta(p, qaItem){
-  const path = buildPagePath(p, qaItem);
+function updateUrlAndMeta(p, qaItem, qaIndex){
+  const path = buildPagePath(p, qaItem, qaIndex);
   if(location.pathname !== path){
-    history.pushState({ pageId:p.id, qaId: qaItem?qaItem.id:null }, '', path);
+    history.pushState({ pageId:p.id, qaIndex: qaItem?qaIndex:null }, '', path);
   }
   const siteName = SITE_BASE_TITLE;
   if(qaItem){
@@ -683,13 +746,13 @@ function applyUrlToState(){
   const ids = parsePathIds();
   if(ids && findPage(ids.pageId)){
     state.activePage = ids.pageId;
-    pendingQaId = ids.qaId || null;
+    pendingQaNumber = ids.qaNumber || null;
   }
 }
 window.addEventListener('popstate', ()=>{
   const ids = parsePathIds();
   state.activePage = (ids && findPage(ids.pageId)) ? ids.pageId : 'home';
-  pendingQaId = ids ? ids.qaId : null;
+  pendingQaNumber = ids ? ids.qaNumber : null;
   renderAll();
 });
 /* ===== نهاية أدوات الروابط ===== */
@@ -908,24 +971,29 @@ function moveMediaBlock(wrap, dir){
 function enhanceMediaBlocks(box, onSave){
   box.querySelectorAll('img,video,iframe').forEach(media=>{
     if(media.closest('.media-block')) return;
+    /* الصور داخل خلايا الجدول تُعرض كصورة مصغّرة بدل شريط كامل العرض،
+       وبدون أزرار نقل للأعلى/الأسفل التي لا معنى لها داخل خلية واحدة. */
+    const inCell = !!media.closest('td,th');
     const wrap=document.createElement('div');
-    wrap.className='media-block';
+    wrap.className='media-block'+(inCell?' in-table':'');
     wrap.contentEditable='false';
     media.parentNode.insertBefore(wrap, media);
     wrap.appendChild(media);
 
     const ctrl=document.createElement('div');
     ctrl.className='media-controls';
-    const upBtn=iconBtn('up','نقل للأعلى','mctrl');
-    const downBtn=iconBtn('down','نقل للأسفل','mctrl');
+    if(!inCell){
+      const upBtn=iconBtn('up','نقل للأعلى','mctrl');
+      const downBtn=iconBtn('down','نقل للأسفل','mctrl');
+      [upBtn,downBtn].forEach(b=> b.addEventListener('mousedown', e=>e.preventDefault()));
+      upBtn.addEventListener('click', ()=>{ moveMediaBlock(wrap,-1); onSave(); });
+      downBtn.addEventListener('click', ()=>{ moveMediaBlock(wrap,1); onSave(); });
+      ctrl.appendChild(upBtn); ctrl.appendChild(downBtn);
+    }
     const delBtn=iconBtn('trash','حذف','mctrl danger');
-    [upBtn,downBtn,delBtn].forEach(b=>{
-      b.addEventListener('mousedown', e=>e.preventDefault());
-    });
-    upBtn.addEventListener('click', ()=>{ moveMediaBlock(wrap,-1); onSave(); });
-    downBtn.addEventListener('click', ()=>{ moveMediaBlock(wrap,1); onSave(); });
+    delBtn.addEventListener('mousedown', e=>e.preventDefault());
     delBtn.addEventListener('click', ()=>{ wrap.remove(); onSave(); });
-    ctrl.appendChild(upBtn); ctrl.appendChild(downBtn); ctrl.appendChild(delBtn);
+    ctrl.appendChild(delBtn);
     wrap.appendChild(ctrl);
   });
 }
@@ -1320,6 +1388,10 @@ function renderContentPage(p){
 
     panel.appendChild(row);
     mainContent.appendChild(panel);
+
+    const endLinkCard = renderEndLinkSection(p);
+    if(endLinkCard) mainContent.appendChild(endLinkCard);
+    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderContentPage(p)));
   } else {
     const box=document.createElement('div');
     box.className='content-box';
@@ -1329,6 +1401,9 @@ function renderContentPage(p){
       box.innerHTML='<span class="empty-hint">لا يوجد محتوى بعد.</span>';
     }
     mainContent.appendChild(box);
+
+    const endLinkCard = renderEndLinkSection(p);
+    if(endLinkCard) mainContent.appendChild(endLinkCard);
   }
 }
 
@@ -1344,12 +1419,12 @@ function renderQaItem(p, item, i){
   a.appendChild(aLabel); a.appendChild(aBody);
   qText.onclick=()=>{
     const isOpen=a.classList.toggle('open');
-    updateUrlAndMeta(p, isOpen?item:null);
+    updateUrlAndMeta(p, isOpen?item:null, isOpen?i:null);
   };
-  if(pendingQaId && item.id===pendingQaId){
+  if(pendingQaNumber!==null && i===pendingQaNumber-1){
     a.classList.add('open');
     setTimeout(()=>box.scrollIntoView({behavior:'smooth', block:'start'}), 60);
-    pendingQaId=null;
+    pendingQaNumber=null;
   }
 
   if(state.admin){
@@ -1496,6 +1571,62 @@ function buildPageManagePanel(p, addLabel){
   return panel;
 }
 
+/* ═══ قسم نهاية الصفحة: بطاقة رابط تنقل الزائر لصفحة أخرى داخل الموقع ═══ */
+function renderEndLinkSection(p){
+  const link = p.endLink;
+  if(!link || !link.targetId) return null;
+  const target = findPage(link.targetId);
+  if(!target) return null;
+  const wrap=document.createElement('div'); wrap.className='end-link-wrap';
+  const card=document.createElement('a');
+  card.href='#'; card.className='end-link-card';
+  card.innerHTML = `<span class="end-link-text"><span class="end-link-label"></span><span class="end-link-title"></span></span><span class="enter-arrow"></span>`;
+  card.querySelector('.end-link-label').textContent = link.label && link.label.trim() ? link.label.trim() : 'تابع القراءة';
+  card.querySelector('.end-link-title').textContent = target.title;
+  card.querySelector('.enter-arrow').innerHTML = ICONS.arrowEnd;
+  card.onclick=(e)=>{ e.preventDefault(); state.activePage=target.id; save(); renderAll(); window.scrollTo({top:0, behavior:'smooth'}); };
+  wrap.appendChild(card);
+  return wrap;
+}
+
+function buildEndLinkAdminPanel(p, rerender){
+  const panel=document.createElement('div'); panel.className='admin-panel';
+  panel.innerHTML='<div class="label">قسم نهاية الصفحة (رابط ينقل الزائر لصفحة أخرى)</div>';
+
+  const form=document.createElement('div'); form.className='qa-form';
+  const labelInput=document.createElement('input');
+  labelInput.placeholder='نص الزر (اختياري، افتراضيًا "تابع القراءة")';
+  labelInput.value = (p.endLink && p.endLink.label) || '';
+  form.appendChild(labelInput);
+
+  const select=document.createElement('select');
+  select.className='admin-select';
+  select.innerHTML='<option value="">-- بدون قسم نهاية (إخفاء) --</option>';
+  allPagesFlat().forEach(item=>{
+    if(item.id===p.id) return;
+    const opt=document.createElement('option');
+    opt.value=item.id;
+    opt.textContent='—'.repeat(item.depth)+' '+item.title;
+    if(p.endLink && p.endLink.targetId===item.id) opt.selected=true;
+    select.appendChild(opt);
+  });
+  form.appendChild(select);
+  panel.appendChild(form);
+
+  const actions=document.createElement('div'); actions.className='qa-edit-actions';
+  const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary'; saveBtn.textContent='حفظ';
+  saveBtn.onclick=()=>{
+    if(select.value) p.endLink = { targetId: select.value, label: labelInput.value.trim() };
+    else delete p.endLink;
+    save();
+    showToast('✓ تم حفظ قسم نهاية الصفحة');
+    rerender();
+  };
+  actions.appendChild(saveBtn);
+  panel.appendChild(actions);
+  return panel;
+}
+
 function renderQuestionsPage(p){
   const sub = getSubtitle(p, '');
   let html = '';
@@ -1513,9 +1644,13 @@ function renderQuestionsPage(p){
     mainContent.appendChild(empty);
   }
 
+  const endLinkCard = renderEndLinkSection(p);
+  if(endLinkCard) mainContent.appendChild(endLinkCard);
+
   if(state.admin){
     mainContent.appendChild(buildQaAddForm(p));
     mainContent.appendChild(buildPageManagePanel(p));
+    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderQuestionsPage(p)));
   }
 }
 
@@ -1613,7 +1748,394 @@ function renderHubPage(p){
     row.appendChild(subBtn);
     panel.appendChild(row);
     mainContent.appendChild(panel);
+    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderHubPage(p)));
   }
+
+  const endLinkCard = renderEndLinkSection(p);
+  if(endLinkCard) mainContent.appendChild(endLinkCard);
+}
+
+/* ══════════════════════════════════════════════════════════
+   نوع صفحة "الشخصيات": فريق من الشخصيات، لكل شخصية صورة، اسم،
+   بيانات مختصرة (كنية/طول/فريق)، نبذة، ومهمة/قدرة.
+   ══════════════════════════════════════════════════════════ */
+function charParagraphs(text){
+  if(!text) return '';
+  const arr = Array.isArray(text) ? text : [text];
+  return arr.map(t=>`<p class="ch-desc">${sanitizeHtml(t)}</p>`).join('');
+}
+
+function buildCharCard(p, ch, i, list){
+  const card=document.createElement('div');
+  card.className='char-card';
+  card.dataset.charId=ch.id;
+
+  const top=document.createElement('div'); top.className='char-top';
+  const portrait=document.createElement('div'); portrait.className='char-portrait';
+  if(ch.img){
+    portrait.innerHTML=`<img src="${ch.img}" alt="" onerror="this.closest('.char-portrait').classList.add('ph');this.remove();">`;
+  } else {
+    portrait.classList.add('ph');
+  }
+  top.appendChild(portrait);
+
+  const info=document.createElement('div'); info.className='char-info';
+  const nameEl=document.createElement('div'); nameEl.className='char-name';
+  nameEl.textContent = ch.name || 'بدون اسم';
+  info.appendChild(nameEl);
+  if(ch.enName){
+    const enEl=document.createElement('div'); enEl.className='char-enname';
+    enEl.textContent = ch.enName;
+    info.appendChild(enEl);
+  }
+  const stats=[
+    ch.stats && ch.stats.kunya ? {label:'الكنية', value:ch.stats.kunya} : null,
+    ch.stats && ch.stats.height ? {label:'الطول', value:ch.stats.height} : null,
+    ch.stats && ch.stats.team ? {label:'الفريق', value:ch.stats.team} : null,
+  ].filter(Boolean);
+  if(stats.length){
+    const statsWrap=document.createElement('div'); statsWrap.className='char-stats';
+    statsWrap.innerHTML = stats.map(s=>`<span class="char-stat"><b>${escapeHtml(s.label)}:</b> ${escapeHtml(s.value)}</span>`).join('');
+    info.appendChild(statsWrap);
+  }
+  top.appendChild(info);
+  card.appendChild(top);
+
+  if(ch.bio){
+    const bioWrap=document.createElement('div'); bioWrap.className='char-section';
+    bioWrap.innerHTML = `<div class="ch-section-label">${ICONS.user}<span>نبذة</span></div>`;
+    const bioBody=document.createElement('div'); bioBody.innerHTML=charParagraphs(ch.bio);
+    bioWrap.appendChild(bioBody);
+    card.appendChild(bioWrap);
+  }
+  if(ch.ability){
+    const abWrap=document.createElement('div'); abWrap.className='char-section';
+    abWrap.innerHTML = `<div class="ch-section-label">${ICONS.gamepad}<span>المهمة والقدرة</span></div>`;
+    const abBody=document.createElement('div'); abBody.innerHTML=charParagraphs(ch.ability);
+    abWrap.appendChild(abBody);
+    card.appendChild(abWrap);
+  }
+
+  if(state.admin){
+    /* الترقيم/التصفية حسب الفريق تعرض قائمة مُصفّاة، لذا يجب أن يعمل النقل
+       لأعلى/أسفل على المصفوفة الحقيقية p.characters (بحسب هوية الشخصية) لا
+       على مؤشر القائمة المصفّاة، وإلا يبدو الزر يعمل دون أن يُحفظ فعليًا. */
+    const fullList = p.characters || [];
+    const actions=document.createElement('div'); actions.className='row-actions char-actions';
+    if(i>0){
+      const up=iconBtn('up','نقل لأعلى','mini-btn');
+      up.onclick=()=>{
+        const idx=fullList.indexOf(ch);
+        if(idx>0){ const t=fullList[idx-1]; fullList[idx-1]=fullList[idx]; fullList[idx]=t; save(); renderCharsPage(p); }
+      };
+      actions.appendChild(up);
+    }
+    if(i<list.length-1){
+      const down=iconBtn('down','نقل لأسفل','mini-btn');
+      down.onclick=()=>{
+        const idx=fullList.indexOf(ch);
+        if(idx>-1 && idx<fullList.length-1){ const t=fullList[idx+1]; fullList[idx+1]=fullList[idx]; fullList[idx]=t; save(); renderCharsPage(p); }
+      };
+      actions.appendChild(down);
+    }
+    const edit=iconBtn('pencil','تعديل الشخصية','mini-btn');
+    edit.onclick=()=> renderCharEditForm(p, ch, card);
+    actions.appendChild(edit);
+    const del=iconBtn('trash','حذف الشخصية','mini-btn');
+    del.onclick=()=>{
+      if(confirm('حذف هذه الشخصية؟')){
+        const idx=fullList.indexOf(ch);
+        if(idx>-1) fullList.splice(idx,1);
+        save(); renderCharsPage(p);
+      }
+    };
+    actions.appendChild(del);
+    card.appendChild(actions);
+  }
+
+  return card;
+}
+
+function buildCharForm(p, existing, onDone){
+  const wrap=document.createElement('div'); wrap.className='char-form';
+
+  const nameRow=document.createElement('div'); nameRow.className='qa-form';
+  const nameInput=document.createElement('input'); nameInput.placeholder='اسم الشخصية';
+  nameInput.value = (existing && existing.name) || '';
+  const enInput=document.createElement('input'); enInput.placeholder='الاسم بالإنجليزية (اختياري)';
+  enInput.value = (existing && existing.enName) || '';
+  nameRow.appendChild(nameInput); nameRow.appendChild(enInput);
+  wrap.appendChild(nameRow);
+
+  const statsRow=document.createElement('div'); statsRow.className='qa-form';
+  const kunyaInput=document.createElement('input'); kunyaInput.placeholder='الكنية (اختياري)';
+  kunyaInput.value = (existing && existing.stats && existing.stats.kunya) || '';
+  const heightInput=document.createElement('input'); heightInput.placeholder='الطول (اختياري)';
+  heightInput.value = (existing && existing.stats && existing.stats.height) || '';
+  const teamInput=document.createElement('input'); teamInput.placeholder='الفريق (اختياري)';
+  teamInput.value = (existing && existing.stats && existing.stats.team) || '';
+  statsRow.appendChild(kunyaInput); statsRow.appendChild(heightInput); statsRow.appendChild(teamInput);
+  wrap.appendChild(statsRow);
+
+  let imgUrl = (existing && existing.img) || '';
+  const imgRow=document.createElement('div'); imgRow.className='char-img-row';
+  const preview=document.createElement('div'); preview.className='char-img-preview';
+  if(imgUrl) preview.innerHTML=`<img src="${imgUrl}" alt="">`;
+  const imgLabel=document.createElement('label'); imgLabel.className='text-btn primary'; imgLabel.textContent='اختيار صورة';
+  const imgInput=document.createElement('input'); imgInput.type='file'; imgInput.accept='image/*';
+  imgInput.onchange=async (e)=>{
+    const file=e.target.files[0];
+    if(!file) return;
+    showToast('⏳ جارِ رفع الصورة...');
+    const url = await uploadMediaFile(file, 'image');
+    if(!url) return;
+    imgUrl = url;
+    preview.innerHTML = `<img src="${imgUrl}" alt="">`;
+    showToast('✓ تم رفع الصورة');
+  };
+  imgLabel.appendChild(imgInput);
+  imgRow.appendChild(preview); imgRow.appendChild(imgLabel);
+  wrap.appendChild(imgRow);
+
+  const bioLbl=document.createElement('div'); bioLbl.className='field-label'; bioLbl.textContent='نبذة';
+  wrap.appendChild(bioLbl);
+  const bioBox=document.createElement('div'); bioBox.className='content-box'; bioBox.contentEditable=true; bioBox.style.minHeight='70px';
+  bioBox.innerHTML = sanitizeHtml((existing && (Array.isArray(existing.bio)?existing.bio.join(''):existing.bio)) || '');
+  attachEditable(bioBox, ()=>{}, {media:false});
+  wrap.appendChild(bioBox);
+
+  const abilityLbl=document.createElement('div'); abilityLbl.className='field-label'; abilityLbl.style.marginTop='8px'; abilityLbl.textContent='المهمة والقدرة (اختياري)';
+  wrap.appendChild(abilityLbl);
+  const abilityBox=document.createElement('div'); abilityBox.className='content-box'; abilityBox.contentEditable=true; abilityBox.style.minHeight='70px';
+  abilityBox.innerHTML = sanitizeHtml((existing && (Array.isArray(existing.ability)?existing.ability.join(''):existing.ability)) || '');
+  attachEditable(abilityBox, ()=>{}, {media:false});
+  wrap.appendChild(abilityBox);
+
+  const actions=document.createElement('div'); actions.className='qa-edit-actions';
+  const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary';
+  saveBtn.textContent = existing ? 'حفظ التعديلات' : 'إضافة الشخصية ونشرها';
+  saveBtn.onclick=()=>{
+    const name=nameInput.value.trim();
+    if(!name){ nameInput.focus(); return; }
+    const data = {
+      id: (existing && existing.id) || uid(),
+      name,
+      enName: enInput.value.trim(),
+      img: imgUrl,
+      stats: { kunya:kunyaInput.value.trim(), height:heightInput.value.trim(), team:teamInput.value.trim() },
+      bio: cleanContentHtml(bioBox),
+      ability: cleanContentHtml(abilityBox)
+    };
+    if(existing){
+      Object.assign(existing, data);
+    } else {
+      p.characters = p.characters || [];
+      p.characters.push(data);
+    }
+    save();
+    showToast('✓ تم حفظ الشخصية');
+    onDone();
+  };
+  const cancelBtn=document.createElement('button'); cancelBtn.className='text-btn'; cancelBtn.textContent='إلغاء';
+  cancelBtn.onclick=onDone;
+  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  wrap.appendChild(actions);
+
+  return wrap;
+}
+
+function renderCharEditForm(p, ch, cardEl, index){
+  const form = buildCharForm(p, ch, ()=> renderCharsPage(p));
+  cardEl.replaceWith(form);
+}
+
+function renderCharsPage(p){
+  const sub = getSubtitle(p, '');
+  let html = '';
+  if(sub) html += `<div class="page-sub">${escapeHtml(sub)}</div>`;
+  mainContent.innerHTML = html;
+
+  const teams=[];
+  (p.characters||[]).forEach(ch=>{
+    const t = ch.stats && ch.stats.team;
+    if(t && !teams.includes(t)) teams.push(t);
+  });
+  let activeTeam = mainContent.dataset.activeTeam || 'الجميع';
+  if(teams.length){
+    const filterWrap=document.createElement('div'); filterWrap.className='chars-filter';
+    const opts=['الجميع', ...teams];
+    opts.forEach(t=>{
+      const chip=document.createElement('button');
+      chip.className='chars-filter-chip'+(t===activeTeam?' active':'');
+      chip.textContent=t;
+      chip.onclick=()=>{ mainContent.dataset.activeTeam=t; renderCharsPage(p); };
+      filterWrap.appendChild(chip);
+    });
+    mainContent.appendChild(filterWrap);
+  }
+
+  const list = (p.characters||[]).filter(ch=> activeTeam==='الجميع' || !teams.length || (ch.stats && ch.stats.team===activeTeam));
+  const grid=document.createElement('div'); grid.className='chars-grid';
+  list.forEach((ch,i)=> grid.appendChild(buildCharCard(p, ch, i, list)));
+  mainContent.appendChild(grid);
+
+  if(!list.length){
+    const empty=document.createElement('div'); empty.className='empty-hint'; empty.style.marginTop='10px';
+    empty.textContent='لا توجد شخصيات بعد.';
+    mainContent.appendChild(empty);
+  }
+
+  if(state.admin){
+    const addPanel=document.createElement('div'); addPanel.className='admin-panel';
+    addPanel.innerHTML='<div class="label">إضافة شخصية جديدة</div>';
+    addPanel.appendChild(buildCharForm(p, null, ()=> renderCharsPage(p)));
+    mainContent.appendChild(addPanel);
+
+    mainContent.appendChild(buildPageManagePanel(p, 'إضافة صفحة فرعية'));
+    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderCharsPage(p)));
+  }
+
+  const endLinkCard = renderEndLinkSection(p);
+  if(endLinkCard) mainContent.appendChild(endLinkCard);
+}
+
+/* ══════════════════════════════════════════════════════════
+   نوع صفحة "اللعبة": شرح اللعبة على شكل أقسام مرتّبة، كل قسم
+   له عنوان ونص غني يدعم صورًا وفيديو وجداول (نفس أدوات التحرير).
+   ══════════════════════════════════════════════════════════ */
+function buildGameSection(p, sec, i, list){
+  const box=document.createElement('div'); box.className='game-section';
+  box.dataset.secId=sec.id;
+
+  const head=document.createElement('div'); head.className='game-sec-head';
+  const titleEl=document.createElement('h2'); titleEl.className='game-sec-title'; titleEl.textContent=sec.title||'';
+  head.appendChild(titleEl);
+
+  if(state.admin){
+    const actions=document.createElement('div'); actions.className='row-actions';
+    if(i>0){
+      const up=iconBtn('up','نقل لأعلى','mini-btn');
+      up.onclick=()=>{ const t=list[i-1]; list[i-1]=list[i]; list[i]=t; save(); renderGamePage(p); };
+      actions.appendChild(up);
+    }
+    if(i<list.length-1){
+      const down=iconBtn('down','نقل لأسفل','mini-btn');
+      down.onclick=()=>{ const t=list[i+1]; list[i+1]=list[i]; list[i]=t; save(); renderGamePage(p); };
+      actions.appendChild(down);
+    }
+    const edit=iconBtn('pencil','تعديل القسم','mini-btn');
+    edit.onclick=()=> renderGameSectionEditForm(p, sec, box);
+    actions.appendChild(edit);
+    const del=iconBtn('trash','حذف القسم','mini-btn');
+    del.onclick=()=>{
+      if(confirm('حذف هذا القسم؟')){
+        const idx=(p.sections||[]).indexOf(sec);
+        if(idx>-1) p.sections.splice(idx,1);
+        save(); renderGamePage(p);
+      }
+    };
+    actions.appendChild(del);
+    head.appendChild(actions);
+  }
+  box.appendChild(head);
+
+  const body=document.createElement('div'); body.className='game-sec-body content-box';
+  body.innerHTML = sanitizeHtml(sec.body || '');
+  box.appendChild(body);
+
+  return box;
+}
+
+function renderGameSectionEditForm(p, sec, boxEl){
+  const wrap=document.createElement('div'); wrap.className='game-section game-sec-editing';
+
+  const titleInput=document.createElement('input');
+  titleInput.className='game-sec-title-input';
+  titleInput.placeholder='عنوان القسم';
+  titleInput.value = sec.title || '';
+  wrap.appendChild(titleInput);
+
+  const bodyBox=document.createElement('div'); bodyBox.className='content-box'; bodyBox.contentEditable=true; bodyBox.style.minHeight='120px';
+  bodyBox.innerHTML = sanitizeHtml(sec.body || '');
+  const onSave=()=>{};
+  attachEditable(bodyBox, onSave, {media:true});
+  setActiveEditBox(bodyBox, onSave, true);
+  enhanceMediaBlocks(bodyBox, onSave);
+  wrap.appendChild(bodyBox);
+
+  const actions=document.createElement('div'); actions.className='qa-edit-actions';
+  const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary'; saveBtn.textContent='حفظ';
+  saveBtn.onclick=()=>{
+    const t=titleInput.value.trim();
+    if(!t){ titleInput.focus(); return; }
+    sec.title=t;
+    sec.body=cleanContentHtml(bodyBox);
+    save();
+    showToast('✓ تم حفظ القسم');
+    renderGamePage(p);
+  };
+  const cancelBtn=document.createElement('button'); cancelBtn.className='text-btn'; cancelBtn.textContent='إلغاء';
+  cancelBtn.onclick=()=> renderGamePage(p);
+  actions.appendChild(saveBtn); actions.appendChild(cancelBtn);
+  wrap.appendChild(actions);
+
+  boxEl.replaceWith(wrap);
+}
+
+function buildGameSectionAddForm(p){
+  const panel=document.createElement('div'); panel.className='admin-panel';
+  panel.innerHTML='<div class="label">إضافة قسم جديد لشرح اللعبة</div>';
+
+  const titleInput=document.createElement('input');
+  titleInput.className='game-sec-title-input';
+  titleInput.placeholder='عنوان القسم (مثال: مرحلة الليل)';
+  panel.appendChild(titleInput);
+
+  const bodyBox=document.createElement('div'); bodyBox.className='content-box'; bodyBox.contentEditable=true; bodyBox.style.minHeight='120px';
+  const onSave=()=>{};
+  attachEditable(bodyBox, onSave, {media:true});
+  enhanceMediaBlocks(bodyBox, onSave);
+  panel.appendChild(bodyBox);
+
+  const actions=document.createElement('div'); actions.className='qa-edit-actions';
+  const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary'; saveBtn.textContent='إضافة القسم ونشره';
+  saveBtn.onclick=()=>{
+    const t=titleInput.value.trim();
+    if(!t){ titleInput.focus(); return; }
+    p.sections = p.sections || [];
+    p.sections.push({ id:uid(), title:t, body:cleanContentHtml(bodyBox) });
+    save();
+    showToast('✓ تمت إضافة القسم ونشره');
+    renderGamePage(p);
+  };
+  actions.appendChild(saveBtn);
+  panel.appendChild(actions);
+  return panel;
+}
+
+function renderGamePage(p){
+  const sub = getSubtitle(p, '');
+  let html = '';
+  if(sub) html += `<div class="page-sub">${escapeHtml(sub)}</div>`;
+  mainContent.innerHTML = html;
+
+  const list = p.sections || [];
+  list.forEach((sec,i)=> mainContent.appendChild(buildGameSection(p, sec, i, list)));
+
+  if(!list.length){
+    const empty=document.createElement('div'); empty.className='empty-hint'; empty.style.marginTop='10px';
+    empty.textContent='لا توجد أقسام شرح بعد.';
+    mainContent.appendChild(empty);
+  }
+
+  if(state.admin){
+    mainContent.appendChild(buildGameSectionAddForm(p));
+    mainContent.appendChild(buildPageManagePanel(p, 'إضافة صفحة فرعية'));
+    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderGamePage(p)));
+  }
+
+  const endLinkCard = renderEndLinkSection(p);
+  if(endLinkCard) mainContent.appendChild(endLinkCard);
 }
 
 function renderMain(){
@@ -1622,6 +2144,8 @@ function renderMain(){
   const type = p.type || 'content';
   if(type==='qa') renderQuestionsPage(p);
   else if(type==='hub') renderHubPage(p);
+  else if(type==='chars') renderCharsPage(p);
+  else if(type==='game') renderGamePage(p);
   else renderContentPage(p);
   updateUrlAndMeta(p);
 
@@ -1868,14 +2392,19 @@ const modalInput=document.getElementById('modalInput');
 const modalParent=document.getElementById('modalParent');
 const typeContentBtn=document.getElementById('typeContentBtn');
 const typeQaBtn=document.getElementById('typeQaBtn');
+const typeCharsBtn=document.getElementById('typeCharsBtn');
+const typeGameBtn=document.getElementById('typeGameBtn');
 typeContentBtn.innerHTML = ICONS.doc + '<span>محتوى</span>';
 typeQaBtn.innerHTML = ICONS.question + '<span>أسئلة</span>';
+typeCharsBtn.innerHTML = ICONS.team + '<span>شخصيات</span>';
+typeGameBtn.innerHTML = ICONS.gamepad + '<span>اللعبة</span>';
+const ALL_TYPE_BTNS = [typeContentBtn, typeQaBtn, typeCharsBtn, typeGameBtn];
 
 let pendingType='content';
-[typeContentBtn, typeQaBtn].forEach(btn=>{
+ALL_TYPE_BTNS.forEach(btn=>{
   btn.onclick=()=>{
     pendingType=btn.dataset.type;
-    [typeContentBtn, typeQaBtn].forEach(b=>b.classList.remove('active'));
+    ALL_TYPE_BTNS.forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
   };
 });
@@ -1883,7 +2412,7 @@ let pendingType='content';
 function openPageModal(parentId){
   modalInput.value='';
   pendingType='content';
-  [typeContentBtn, typeQaBtn].forEach(b=>b.classList.remove('active'));
+  ALL_TYPE_BTNS.forEach(b=>b.classList.remove('active'));
   typeContentBtn.classList.add('active');
   modalParent.innerHTML='<option value="">-- بدون (صفحة رئيسية في القائمة) --</option>';
   allPagesFlat().forEach(item=>{
@@ -1901,9 +2430,11 @@ document.getElementById('modalConfirm').onclick=()=>{
   const title=modalInput.value.trim();
   if(!title){ modalInput.focus(); return; }
   const parentId=modalParent.value;
-  const newPage = pendingType==='qa'
-    ? {id:uid(), title, type:'qa', qa:[], children:[]}
-    : {id:uid(), title, type:'content', content:'', children:[]};
+  let newPage;
+  if(pendingType==='qa') newPage = {id:uid(), title, type:'qa', qa:[], children:[]};
+  else if(pendingType==='chars') newPage = {id:uid(), title, type:'chars', characters:[], children:[]};
+  else if(pendingType==='game') newPage = {id:uid(), title, type:'game', sections:[], children:[]};
+  else newPage = {id:uid(), title, type:'content', content:'', children:[]};
   if(parentId){
     const parent=findPage(parentId);
     parent.children = parent.children||[];

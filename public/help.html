@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>تعريف مطالع تموز</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<style>
+* { box-sizing:border-box; margin:0; padding:0; -webkit-tap-highlight-color:transparent; }
+:root{
+  --bg:#000; --surface:#111118; --accent:#1a2a3a;
+  --text:#fff; --text2:#a0a0b0; --blue:#4e6bff; --cyan:#6bd3ff;
+  --nav-h:78px; --pad:20px;
+}
+html,body{ background:#000; height:100dvh; width:100%; overflow:hidden; direction:rtl; }
+body{ font-family:'Tajawal',sans-serif; color:var(--text); display:flex; flex-direction:column; }
+
+/* ═══ حاوية الأقسام ═══ */
+#app{ flex:1; min-height:0; position:relative; overflow:hidden; }
+.view{ position:absolute; inset:0; opacity:0; pointer-events:none; transition:opacity .28s ease; }
+.view.active{ opacity:1; pointer-events:auto; }
+
+/* ═══ الكاروسيل (تمرير — صفحة واحدة بالضبط مهما كانت قوة التمرير) ═══ */
+.carousel{ height:100%; width:100%; overflow:hidden; touch-action:none; cursor:grab; direction:ltr; }
+.carousel:active{ cursor:grabbing; }
+.track{ height:100%; display:flex; will-change:transform; }
+.slide{
+  flex:0 0 100%; width:100%; height:100%;
+  overflow-y:auto; overflow-x:hidden; scrollbar-width:none;
+  direction:rtl;
+  -webkit-user-select:none; user-select:none; -webkit-touch-callout:none;
+}
+.slide::-webkit-scrollbar{ display:none; }
+
+/* ── محتوى صفحات شرح اللعبة ── */
+.gh-slide{ padding:26px var(--pad) 130px; }
+.gh-h1{ font-size:1.4rem; font-weight:900; margin-bottom:14px; }
+.gh-h2{ font-size:1.05rem; font-weight:800; color:var(--cyan); margin:22px 0 10px; }
+.gh-p{ font-size:.9rem; line-height:1.95; color:var(--text2); margin-bottom:14px; }
+.gh-p.emph{ color:var(--text); font-weight:700; }
+.gh-list{ list-style:none; margin-bottom:14px; display:flex; flex-direction:column; gap:9px; }
+.gh-li{ display:flex; align-items:flex-start; gap:10px; }
+.gh-li::before{
+  content:''; width:6px; height:6px; margin-top:8px; border-radius:50%;
+  background:var(--cyan); flex-shrink:0;
+}
+.gh-li-text{ font-size:.88rem; line-height:1.85; color:var(--text2); flex:1; min-width:0; }
+.gh-li-row{ display:flex; align-items:center; gap:10px; width:100%; }
+.gh-p-inline{ flex:1; min-width:0; margin-bottom:0; }
+
+/* صورة كاملة العرض (^) — تمتد حافة إلى حافة الشاشة، خارج الحشو */
+.blk-full{
+  width:calc(100% + var(--pad)*2); margin:16px calc(var(--pad)*-1) 20px;
+  aspect-ratio:16/9; overflow:hidden; position:relative;
+  border-top:1px solid rgba(255,255,255,.08); border-bottom:1px solid rgba(255,255,255,.08);
+}
+.blk-full img{ width:100%; height:100%; object-fit:cover; display:block; }
+.slide img{ -webkit-user-drag:none; -webkit-touch-callout:none; user-select:none; pointer-events:none; }
+
+/* صورة مصاحبة للنص (©) — صغيرة، بجانب النص مباشرة، بحجم موحّد ومحاذاة مضبوطة */
+.inline-group{ display:flex; align-items:center; gap:6px; flex-shrink:0; align-self:center; }
+.blk-inline{
+  width:42px; height:42px; border-radius:10px; overflow:hidden; flex-shrink:0;
+  border:1px solid rgba(255,255,255,.14); background:var(--surface);
+}
+.blk-inline img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+/* عنصر عنصر بديل عند عدم توفر الصورة */
+.ph-box{
+  width:100%; height:100%; display:flex; align-items:center; justify-content:center;
+  background:linear-gradient(155deg,var(--surface),#0a0a10); color:rgba(255,255,255,.18);
+}
+.ph-box.full i{ font-size:2.2rem; }
+.ph-box.inline i{ font-size:1.1rem; }
+
+/* ═══ صفحات شرح الشخصيات (معدلة) ═══ */
+.ch-slide{ 
+  padding:0 0 130px; 
+  position:relative; 
+  display:flex; 
+  flex-direction:column; 
+  height:100%; 
+  overflow-y:auto;
+  overflow-x:hidden;
+  scrollbar-width:none;
+}
+.ch-slide::-webkit-scrollbar{ display:none; }
+
+.ch-name-top {
+  text-align:center; 
+  font-size:1.2rem; 
+  font-weight:900; 
+  color:#fff;
+  text-shadow:0 2px 10px rgba(0,0,0,.6);
+  padding:14px 0 4px;
+  position:relative;
+  z-index:2;
+  flex-shrink:0;
+}
+
+/* ── الصف العلوي: الصورة بجانب النص (ارتفاع ثابت لا يتغيّر) ── */
+.ch-top-row {
+  flex:0 0 auto;
+  display:flex;
+  align-items:stretch;
+  gap:14px;
+  padding:6px var(--pad) 4px;
+  height:clamp(260px, 48vh, 420px);
+}
+
+/* ── حاوية الصورة: حجم ثابت دائمًا، أي تجاوز من الصورة يُقص تلقائيًا ── */
+.ch-portrait-wrap {
+  flex:0 0 48%;
+  width:48%;
+  max-width:48%;
+  height:100%;
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+}
+
+.ch-portrait {
+  position:relative; 
+  width:100%;
+  height:100%;
+  overflow:hidden;
+}
+
+.ch-portrait::after {
+  content:'';
+  position:absolute;
+  inset:0;
+  z-index:2;
+  pointer-events:none;
+  background:linear-gradient(to bottom,
+    rgba(0,0,0,0) 55%,
+    rgba(0,0,0,.35) 78%,
+    var(--bg) 100%
+  );
+}
+
+.ch-portrait img {
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:top center;
+  display:block;
+  transform:scale(1.3334);
+  transform-origin:top center;
+}
+
+.ch-portrait i {
+  position:absolute; 
+  inset:0; 
+  display:flex; 
+  align-items:center; 
+  justify-content:center; 
+  font-size:3.4rem; 
+  color:var(--char-col,var(--cyan)); 
+  opacity:.55;
+}
+
+/* ── النص الجانبي: صندوق مستقل بنفس ارتفاع الصورة، يُمرَّر داخليًا عند الفيض ── */
+.ch-side-text {
+  flex:1;
+  min-width:0;
+  height:100%;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:none;
+  display:flex;
+  flex-direction:column;
+  gap:10px;
+  padding-top:2px;
+}
+.ch-side-text::-webkit-scrollbar{ display:none; }
+
+/* ── معلومات الشخصية: مكتوبة فوق الصورة، أعلى يمينها، بدون خلفية ── */
+.ch-stats {
+  position:absolute;
+  top:10px;
+  right:10px;
+  z-index:3;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  gap:4px;
+  pointer-events:none;
+}
+.ch-stat-row{ display:flex; align-items:baseline; gap:5px; font-size:.72rem; line-height:1.4; text-shadow:0 1px 5px rgba(0,0,0,.85), 0 0 12px rgba(0,0,0,.6); }
+.ch-stat-label{ color:var(--char-col,var(--cyan)); font-weight:800; flex-shrink:0; }
+.ch-stat-value{ color:#fff; font-weight:600; word-break:break-word; }
+
+/* ── وصف الشخصية ── */
+.ch-desc-wrap {
+  padding:14px var(--pad) 20px;
+  flex-shrink:0;
+}
+.ch-side-text .ch-desc{
+  font-size:.8rem;
+  line-height:1.75;
+}
+.ch-desc{ 
+  font-size:.9rem; 
+  line-height:1.95; 
+  color:var(--text2); 
+  margin:0 0 14px;
+}
+.ch-desc:last-child{ margin-bottom:0; }
+
+/* ── عناوين فرعية صغيرة تفصل الأقسام (نبذة / المهمة) ── */
+.ch-section-label{
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:.72rem;
+  font-weight:800;
+  letter-spacing:.3px;
+  color:var(--char-col,var(--cyan));
+  margin-bottom:8px;
+}
+.ch-section-label i{ font-size:.68rem; }
+.ch-section-label::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:linear-gradient(to left, rgba(255,255,255,.14), transparent);
+}
+
+/* ── تمييز الكلمات والعبارات المهمة داخل النص ── */
+.hl{
+  color:#fff;
+  font-weight:800;
+}
+.hl-accent{
+  color:var(--char-col,var(--cyan));
+  font-weight:800;
+}
+
+/* ── قسم المهمة / القدرة (يفصله خط عن السيرة) ── */
+.ch-ability-wrap{
+  margin-top:6px;
+  padding-top:16px;
+  border-top:1px solid rgba(255,255,255,.08);
+}
+.ch-ability-wrap .ch-desc{ color:var(--text2); }
+
+/* ═══ النقاط (Dots) ═══ */
+.dots{ display:none; align-items:center; justify-content:center; gap:8px; height:14px; }
+.dots.active{ display:flex; }
+.dot{ width:7px; height:7px; border-radius:50%; background:rgba(255,255,255,.22); transition:all .25s ease; cursor:pointer; }
+.dot.active{ width:20px; border-radius:5px; background:var(--cyan); }
+
+/* ═══ زر تصفية الفرق — بدون خلفية، داخل القائمة السفلية ═══ */
+.ch-filter-btn{
+  position:absolute;
+  right:18px;
+  top:14px;
+  z-index:2;
+  width:auto;
+  height:auto;
+  border:none;
+  background:none;
+  color:var(--text-dim);
+  opacity:.6;
+  display:none;
+  align-items:center;
+  justify-content:center;
+  cursor:pointer;
+  font-size:1.05rem;
+  padding:8px;
+  transition:color .2s ease, opacity .2s ease;
+}
+.ch-filter-btn.shown{ display:flex; }
+.ch-filter-btn i{ transition:transform .25s ease; }
+.ch-filter-btn.open i{ transform:rotate(180deg); }
+.ch-filter-btn.filtered{ color:var(--cyan); opacity:1; }
+.ch-filter-btn:hover{ opacity:1; }
+
+.ch-filter-backdrop{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.4);
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s ease;
+  z-index:11;
+}
+.ch-filter-backdrop.open{ opacity:1; pointer-events:auto; }
+
+/* قائمة عمودية ملتصقة بيمين الشاشة، فوق القائمة السفلية مباشرة */
+.ch-filter-sheet{
+  position:fixed;
+  right:0;
+  bottom:0;
+  z-index:12;
+  display:flex;
+  flex-direction:column;
+  min-width:150px;
+  background:linear-gradient(0deg,rgba(0,0,0,.98) 60%,rgba(0,0,0,.7) 100%);
+  border:1px solid rgba(255,255,255,.08);
+  border-bottom:none;
+  border-radius:0;
+  padding:6px 0 10px;
+  transform:translateY(12px);
+  opacity:0;
+  pointer-events:none;
+  transition:transform .25s cubic-bezier(.22,.61,.36,1), opacity .2s ease, bottom .15s ease;
+}
+.ch-filter-sheet.open{ transform:translateY(0); opacity:1; pointer-events:auto; }
+.ch-filter-options{
+  display:flex;
+  flex-direction:column;
+}
+.ch-filter-opt{
+  background:none;
+  border:none;
+  border-top:1px solid rgba(255,255,255,.09);
+  padding:12px 22px;
+  color:var(--text2);
+  font-size:.82rem;
+  font-weight:700;
+  text-align:center;
+  cursor:pointer;
+  transition:color .2s ease;
+}
+.ch-filter-options .ch-filter-opt:first-child{ border-top:none; }
+.ch-filter-opt.active{ color:var(--cyan); }
+
+/* ═══ القائمة السفلية ═══ */
+nav#bottom-nav{
+  flex-shrink:0; display:flex; flex-direction:column; align-items:center;
+  gap:10px; padding:12px 0 14px;
+  background:linear-gradient(0deg,rgba(0,0,0,.98) 60%,rgba(0,0,0,.7) 100%);
+  border-top:1px solid rgba(255,255,255,.08);
+  position:relative; z-index:10;
+}
+.nav-icons{ display:flex; align-items:center; justify-content:center; gap:56px; }
+.nav-btn{ background:none; border:none; color:var(--text); display:flex; align-items:center; justify-content:center; cursor:pointer; padding:8px 14px; }
+.nav-svg{
+  width:1.55rem; height:1.55rem; display:block; fill:none; stroke:currentColor;
+  stroke-linecap:round; stroke-linejoin:round; stroke-width:1.7; opacity:.5;
+  transition:opacity .15s ease, stroke-width .15s ease, transform .15s ease;
+}
+.nav-btn.active .nav-svg{ opacity:1; stroke-width:2.1; color:var(--cyan); transform:scale(1.08); }
+
+/* ── تحسينات للشاشات الصغيرة ── */
+@media (max-width: 480px) {
+  .ch-top-row { gap:10px; height:clamp(240px, 46vh, 380px); }
+  .ch-name-top { font-size:1rem; padding:10px 0 2px; }
+  .ch-desc { font-size:.82rem; }
+  .ch-side-text .ch-desc { font-size:.75rem; line-height:1.65; }
+  .ch-stat-row { font-size:.7rem; }
+}
+
+@media (min-width: 768px) {
+  .ch-top-row { height:clamp(340px, 54vh, 500px); }
+}
+
+@media (min-width: 1024px) {
+  .ch-top-row { height:clamp(380px, 58vh, 560px); }
+}
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ═══ شرح اللعبة ═══ -->
+  <section class="view active" id="view-game">
+    <div class="carousel" id="carousel-game"><div class="track" id="track-game"></div></div>
+  </section>
+
+  <!-- ═══ شرح الشخصيات ═══ -->
+  <section class="view" id="view-chars">
+    <div class="carousel" id="carousel-chars"><div class="track" id="track-chars"></div></div>
+  </section>
+
+  <div class="ch-filter-backdrop" id="ch-filter-backdrop"></div>
+  <div class="ch-filter-sheet" id="ch-filter-sheet">
+    <div class="ch-filter-options" id="ch-filter-options"></div>
+  </div>
+
+</div>
+
+<!-- ═══ القائمة السفلية ═══ -->
+<nav id="bottom-nav">
+  <div class="nav-icons">
+    <button class="nav-btn active" id="btn-game" onclick="switchView('game')">
+      <svg class="nav-svg" viewBox="0 0 24 24">
+        <rect x="3" y="8" width="18" height="9.5" rx="4.5"/>
+        <line x1="7.2" y1="12" x2="7.2" y2="15.5"/>
+        <line x1="5.4" y1="13.75" x2="9" y2="13.75"/>
+        <circle cx="15" cy="12.6" r="1" fill="currentColor" stroke="none"/>
+        <circle cx="17.3" cy="14.8" r="1" fill="currentColor" stroke="none"/>
+      </svg>
+    </button>
+    <button class="nav-btn" id="btn-chars" onclick="switchView('chars')">
+      <svg class="nav-svg" viewBox="0 0 24 24">
+        <circle cx="9" cy="8" r="3.3"/>
+        <path d="M3.5 19c0-3.3 2.5-5.5 5.5-5.5s5.5 2.2 5.5 5.5"/>
+        <circle cx="17" cy="8.5" r="2.6" opacity=".7"/>
+        <path d="M16 13.6c2.4.3 4 2.2 4 5"/>
+      </svg>
+    </button>
+  </div>
+  <div class="dots active" id="dots-game"></div>
+  <div class="dots" id="dots-chars"></div>
+  <button class="ch-filter-btn" id="ch-filter-btn" aria-label="تصفية حسب الفريق">
+    <i class="fas fa-chevron-up"></i>
+  </button>
+</nav>
+
+<script type="module">
+(async () => {
+
+/* ══════════════════════════════════════════
+   أداة استبدال الصور المكسورة بعنصر بديل
+════════════════════════════════════════════ */
+window.imgOrPH = function(imgEl, kind) {
+  const ph = document.createElement('div');
+  ph.className = 'ph-box ' + kind;
+  ph.innerHTML = '<i class="fas fa-image"></i>';
+  imgEl.replaceWith(ph);
+};
+
+function fullImg(src) {
+  return `<div class="blk-full"><img src="${src}" alt="" onerror="imgOrPH(this,'full')"></div>`;
+}
+function inlineImgs(srcs) {
+  return `<div class="inline-group">` + srcs.map(s =>
+    `<div class="blk-inline"><img src="${s}" alt="" onerror="imgOrPH(this,'inline')"></div>`
+  ).join('') + `</div>`;
+}
+
+/* ══════════════════════════════════════════
+   محتوى صفحات شرح اللعبة (5 صفحات)
+   بُنية كل صفحة: مصفوفة "بلوكات" تُترجم لعناصر HTML
+════════════════════════════════════════════ */
+function renderBlocks(blocks, pageIdx) {
+  let n = 0;
+  const img = () => `assets/tutorial/p${pageIdx}-${++n}.png`;
+  let html = '';
+  blocks.forEach(b => {
+    if (b.type === 'h') {
+      html += `<h2 class="gh-h1">${b.text}</h2>`;
+      if (b.imgBelow) html += fullImg(img());
+    } else if (b.type === 'h3') {
+      html += `<h3 class="gh-h2">${b.text}</h3>`;
+      if (b.imgBelow) html += fullImg(img());
+    } else if (b.type === 'p') {
+      if (b.inlineCount) {
+        html += `<div class="gh-li-row" style="margin-bottom:14px;">
+          <p class="gh-p gh-p-inline">${b.text}</p>
+          ${inlineImgs(Array.from({length:b.inlineCount}, img))}
+        </div>`;
+      } else {
+        html += `<p class="gh-p ${b.emphasis?'emph':''}">${b.text}</p>`;
+      }
+    } else if (b.type === 'list') {
+      html += `<ul class="gh-list">` + b.items.map(it => {
+        const item = typeof it === 'string' ? { text: it } : it;
+        let row = `<li class="gh-li"><div class="gh-li-row">
+          <span class="gh-li-text">${item.text}</span>
+          ${item.inlineCount ? inlineImgs(Array.from({length:item.inlineCount}, img)) : ''}
+        </div></li>`;
+        if (item.imgBelow) row += fullImg(img());
+        return row;
+      }).join('') + `</ul>`;
+    }
+  });
+  return html;
+}
+
+const GAME_PAGES = [
+  // ── الصفحة 1: مرحبًا بك ──
+  { imgBelow:true, blocks:[
+    { type:'h', text:'مرحبًا بك!', imgBelow:true },
+    { type:'p', text:'مرحبًا بك في اللعبة! هذه لعبة استراتيجية جماعية تعتمد على التفكير المنطقي، وتحليل الأدلة، والتخطيط، والعمل الجماعي. في كل مباراة ينضم 8 لاعبين، ويُوزَّع عليهم عدد من الوظائف المختلفة بشكل عشوائي، حيث ينتمي كل لاعب إلى فريق محدد يمتلك أهدافًا تختلف عن أهداف الفرق الأخرى.' },
+    { type:'p', text:'لكل شخصية وظيفة فريدة، ومهارات خاصة، ودور مهم يؤثر بشكل مباشر على مجريات المباراة. بعض الشخصيات تعمل على حماية السيرفرات وكشف المخربين، بينما تسعى شخصيات أخرى إلى تنفيذ عمليات الاختراق أو تضليل اللاعبين لتحقيق أهداف فريقها.' },
+    { type:'p', text:'لتحقيق الفوز، لن يكفي الاعتماد على الحظ، بل ستحتاج إلى:' },
+    { type:'list', items:[
+      'تحليل أحداث كل ليلة بدقة.',
+      'مراقبة تصرفات اللاعبين واستنتاج نواياهم.',
+      'التعاون مع أعضاء فريقك ومشاركة المعلومات المهمة.',
+      'اتخاذ قرارات مدروسة أثناء التصويت.',
+      'استخدام مهارات شخصيتك في الوقت المناسب.'
+    ]},
+    { type:'p', text:'تذكّر أن المظاهر قد تكون خادعة؛ فقد يبدو اللاعب بريئًا وهو يخفي دوره الحقيقي، وقد يُتهم لاعب بريء بسبب أدلة مضللة أو استنتاجات خاطئة. لذلك، فكّر جيدًا قبل اتخاذ أي قرار، فكل اختيار تقوم به قد يغيّر مجرى المباراة بالكامل.' },
+    { type:'p', emphasis:true, text:'هل أنت مستعد لاكتشاف الحقيقة، أم ستكون أنت من ينجح في خداع الجميع؟' },
+  ]},
+
+  // ── الصفحة 2: مرحلة الليل ──
+  { blocks:[
+    { type:'h', text:'مرحلة الليل', imgBelow:true },
+    { type:'p', text:'تستمر مرحلة الليل لمدة 30 ثانية، وهي المرحلة التي ينفذ فيها كل لاعب الإجراءات والمهام الخاصة بوظيفته بسرية تامة. خلال هذه الفترة، يمكنك استخدام مهاراتك، مراقبة حالة السيرفرات، وتسجيل أي معلومات قد تساعدك في المراحل القادمة، لذلك يُنصح باستغلال الوقت وعدم الانتظار حتى الثواني الأخيرة.' },
+    { type:'h3', text:'قائمة الإجراءات' },
+    { type:'p', inlineCount:1, text:'اضغط على زر (+) لفتح قائمة الإجراءات، والتي تحتوي على النافذتين التاليتين:' },
+    { type:'h3', text:'المهارات', imgBelow:true },
+    { type:'p', text:'تعرض جميع المهارات والإجراءات المتاحة لوظيفتك. تختلف المهارات من وظيفة إلى أخرى، لذلك لن يمتلك جميع اللاعبين نفس الخيارات. من خلال هذه النافذة يمكنك تنفيذ المهام أو استخدام القدرات المخصصة لدورك، وسيتم تطبيق الإجراء مباشرة بعد اختياره إذا كانت شروط استخدامه مستوفاة.' },
+    { type:'h3', text:'المفكرة', imgBelow:true },
+    { type:'p', text:'تتيح لك المفكرة تدوين أي معلومات ترغب بالاحتفاظ بها أثناء المباراة، مثل:' },
+    { type:'list', items:[
+      'أسماء اللاعبين المشتبه بهم.',
+      'ملاحظات حول تصرفات اللاعبين.',
+      'السيرفرات التي تعرضت للاختراق.',
+      'أي استنتاجات أو خطط ترغب بالرجوع إليها لاحقًا.'
+    ]},
+    { type:'p', text:'الملاحظات الموجودة في المفكرة خاصة بك ولا يمكن للاعبين الآخرين الاطلاع عليها.' },
+    { type:'h3', text:'الخريطة', imgBelow:true },
+    { type:'p', text:'تتيح لك الخريطة متابعة حالة جميع السيرفرات المنتشرة في اللعبة بشكل مباشر. تساعدك الخريطة على معرفة أماكن الأعطال أو الاختراقات واتخاذ الإجراء المناسب وفقًا لصلاحيات وظيفتك.' },
+    { type:'p', text:'يتم تحديث حالة السيرفرات باستمرار، لذلك يُفضل مراجعة الخريطة بشكل متكرر أثناء مرحلة الليل لمعرفة أي تغييرات جديدة.' },
+    { type:'p', text:'تعرض الخريطة حالة كل سيرفر باستخدام الألوان التالية:' },
+    { type:'list', items:[
+      { text:'الأخضر: السيرفر سليم ويعمل بشكل طبيعي، ولا يحتاج إلى أي إجراء.', inlineCount:1 },
+      { text:'الأحمر: السيرفر تعرض للاختراق، ويتطلب التدخل من اللاعبين الذين يمتلكون صلاحية إصلاحه أو التعامل معه.', inlineCount:1 },
+      { text:'الأصفر: تم إصلاح السيرفر بنجاح، وهو يعمل حاليًا بشكل آمن، إلا أنه قد يتعرض للاختراق مرة أخرى في أي وقت.', inlineCount:1 },
+    ]},
+    { type:'h3', text:'انتهاء المرحلة' },
+    { type:'p', text:'عند انتهاء مدة 30 ثانية، تنتهي مرحلة الليل تلقائيًا وتبدأ المرحلة التالية. بعد انتهاء الوقت لن تتمكن من تنفيذ أي مهارة أو إجراء جديد، لذلك احرص على استخدام قدراتك ومراجعة الخريطة وتدوين ملاحظاتك قبل انتهاء العد التنازلي.' },
+  ]},
+
+  // ── الصفحة 3: مرحلة النهار ──
+  { blocks:[
+    { type:'h', text:'مرحلة النهار', imgBelow:true },
+    { type:'p', text:'تستمر مرحلة النهار لمدة دقيقتين، وهي المرحلة التي يجتمع فيها جميع اللاعبين لتحليل ما حدث خلال الليلة السابقة وتبادل المعلومات للوصول إلى الشخصيات المشبوهة. في هذه المرحلة لا تُستخدم المهارات، بل يكون التركيز على الحوار، الاستنتاج، وجمع الأدلة.' },
+    { type:'h3', text:'سجل الأحداث' },
+    { type:'p', text:'مع بداية مرحلة النهار، يتم عرض سجل الأحداث الذي يتضمن جميع الوقائع المهمة التي حدثت أثناء الليل، مثل:' },
+    { type:'list', items:[
+      { text:'السيرفرات التي تعرضت للاختراق.', inlineCount:1 },
+      { text:'السيرفرات التي تم إصلاحها.', inlineCount:1 },
+      { text:'الأحداث أو الإجراءات التي يسمح النظام بعرضها للاعبين.', inlineCount:1 },
+    ]},
+    { type:'p', text:'يساعدك سجل الأحداث على تكوين صورة أوضح عما جرى، وربط الأحداث بتصرفات اللاعبين للوصول إلى استنتاجات دقيقة.' },
+    { type:'h3', text:'الدردشة العامة', imgBelow:true },
+    { type:'p', text:'تتوفر دردشة عامة يستطيع جميع اللاعبين المشاركة فيها طوال مدة المرحلة. يمكنك استخدامها من أجل:' },
+    { type:'list', items:[
+      'مناقشة أحداث الليلة السابقة.',
+      'مشاركة الأدلة أو المعلومات التي حصلت عليها.',
+      'طرح الأسئلة على اللاعبين الآخرين.',
+      'الدفاع عن نفسك إذا وُجهت إليك الشبهات.',
+      'محاولة كشف الشخصيات المشبوهة أو تضليل الآخرين إذا كانت وظيفتك تتطلب ذلك.'
+    ]},
+    { type:'p', text:'احرص على تحليل رسائل اللاعبين جيدًا، فقد تكشف طريقة حديثهم أو تناقض أقوالهم معلومات مهمة تساعد فريقك على معرفة الحقيقة.' },
+    { type:'h3', text:'انتهاء المرحلة' },
+    { type:'p', text:'عند انتهاء مدة الدقيقتين، تنتهي مرحلة النهار تلقائيًا وتبدأ المرحلة التالية من اللعبة. لذلك احرص على مناقشة جميع الأدلة، وتسجيل ملاحظاتك، والاستفادة من الوقت للوصول إلى أفضل استنتاج ممكن قبل انتهاء العد التنازلي.' },
+  ]},
+
+  // ── الصفحة 4: مرحلة التصويت ──
+  { blocks:[
+    { type:'h', text:'مرحلة التصويت', imgBelow:true },
+    { type:'p', text:'تستمر مرحلة التصويت لمدة 30 ثانية، وهي المرحلة التي يقرر فيها جميع اللاعبين مصير أحد المتهمين. يعد هذا القرار من أهم مراحل المباراة، لذلك احرص على التصويت بناءً على الأدلة والاستنتاجات، وليس على التخمين فقط، فقد يكون اللاعب المتهم بريئًا، وقد يؤدي إعدامه إلى منح الفريق المنافس أفضلية كبيرة.' },
+    { type:'h3', text:'التصويت', imgBelow:true },
+    { type:'p', inlineCount:2, text:'للتصويت على أحد اللاعبين، اضغط على زر (+) ثم اختر "المهارات"، وبعدها حدد اللاعب الذي ترغب في التصويت ضده.' },
+    { type:'p', text:'لن يتم إعلان نتيجة التصويت فورًا، بل يتم تسجيل صوتك والاحتفاظ به حتى انتهاء مدة المرحلة، ثم تُحسب جميع الأصوات في الوقت نفسه لضمان سرية التصويت.' },
+    { type:'p', text:'يمكنك تغيير قرارك خلال مدة التصويت قبل انتهاء الوقت، ويُحتسب آخر تصويت قمت باختياره.' },
+    { type:'h3', text:'نتيجة التصويت' },
+    { type:'list', items:[
+      { text:'اللاعب الذي يحصل على أعلى عدد من الأصوات يُرشح للإعدام.', inlineCount:1 },
+      { text:'إذا تعادلت الأصوات بين أكثر من لاعب، يُلغى التصويت بالكامل، ولا يتم إعدام أي لاعب، وتنتقل المباراة إلى المرحلة التالية.', inlineCount:1 },
+    ]},
+    { type:'h3', text:'الحجة الأخيرة', imgBelow:true },
+    { type:'p', text:'إذا تم ترشيح أحد اللاعبين للإعدام، يُمنح فرصة أخيرة للدفاع عن نفسه فيما يُعرف بـ الحجة الأخيرة.' },
+    { type:'p', text:'تستمر هذه المرحلة لمدة 15 ثانية، ويمكن للمتهم خلالها شرح موقفه، أو نفي التهم الموجهة إليه، أو محاولة إقناع بقية اللاعبين بأنه بريء.' },
+    { type:'p', text:'قد تكون هذه الفرصة كافية لتغيير مجرى التصويت، لذلك يُنصح جميع اللاعبين بالاستماع جيدًا قبل اتخاذ القرار النهائي.' },
+    { type:'h3', text:'الموافقة أو الاعتراض', imgBelow:true },
+    { type:'p', text:'بعد انتهاء الحجة الأخيرة، يظهر لجميع اللاعبين خياران:' },
+    { type:'list', items:[
+      'الموافقة: تأييد تنفيذ حكم الإعدام على المتهم.',
+      'الاعتراض: رفض تنفيذ الحكم ومنح المتهم فرصة للبقاء.'
+    ]},
+    { type:'p', text:'يبقى هذا الاختيار ظاهرًا لمدة 5 ثوانٍ فقط، وبعد انتهائها يتم احتساب أصوات الموافقة والاعتراض تلقائيًا، ثم تُنفذ النتيجة النهائية وفقًا لنظام اللعبة.' },
+    { type:'p', text:'احرص على التفكير جيدًا قبل التصويت أو الموافقة على الإعدام، فقرار واحد خاطئ قد يغيّر مجرى المباراة بالكامل ويمنح الفريق الآخر فرصة للفوز.' },
+  ]},
+
+  // ── الصفحة 5: شروط الفوز ──
+  { blocks:[
+    { type:'h', text:'شروط الفوز' },
+    { type:'p', text:'تختلف شروط الفوز حسب الفريق الذي تنتمي إليه، لذلك يجب أن تعرف هدف فريقك منذ بداية المباراة، وأن تعمل مع حلفائك لتحقيقه قبل أن يسبقكم الفريق المنافس.' },
+    { type:'h3', text:'فريق اسبيتا' },
+    { type:'p', text:'يسعى فريق اسبيتا إلى السيطرة على السيرفرات وإضعاف الفريق الآخر. ويحقق الفوز في إحدى الحالات التالية:' },
+    { type:'list', items:[
+      { text:'اختراق 4 سيرفرات من أصل 8 بنجاح.', imgBelow:true },
+      { text:'تعادل عدد أفراد فريق اسبيتا مع عدد أفراد الفريق الآخر، بحيث يصبح من المستحيل على الفريق الآخر إيقافهم أو التصويت ضدهم بشكل فعّال.', imgBelow:true },
+      { text:'قيام الحارس بقتل لاعب بريء باستخدام مهارته، مما يؤدي إلى فوز فريق اسبيتا مباشرة.', imgBelow:true },
+    ]},
+    { type:'h3', text:'الفريق الآخر' },
+    { type:'p', text:'يهدف الفريق الآخر إلى حماية السيرفرات وكشف اسبيتا قبل أن يسيطروا على الشبكة.' },
+    { type:'p', text:'ويحقق الفوز عندما:' },
+    { type:'list', items:[
+      { text:'يتم إقصاء جميع أفراد فريق اسبيتا من المباراة، سواء عن طريق التصويت أو بأي وسيلة أخرى تسمح بها أدوار اللعبة.', inlineCount:2 },
+    ]},
+    { type:'p', emphasis:true, text:'احرص دائمًا على معرفة هدف فريقك، فليس كل قرار يحقق مصلحتك الشخصية يضمن الفوز لفريقك. التعاون، حسن التخطيط، واتخاذ القرارات الصحيحة في الوقت المناسب هي مفاتيح الفوز في هذه اللعبة.' },
+  ]},
+];
+
+const trackGame = document.getElementById('track-game');
+trackGame.innerHTML = GAME_PAGES.map((page, i) =>
+  `<div class="slide gh-slide" data-i="${i}">${renderBlocks(page.blocks, i+1)}</div>`
+).join('');
+
+/* ══════════════════════════════════════════
+   استرداد بيانات الشخصيات من جدول `characters`
+   بالسيرفر (نفس نمط none.html) — بدل الاعتماد
+   على أي ملف ثابت مثل shop-items.js، صار الاسم
+   والصورة واللون تُقرأ مباشرة من قاعدة البيانات،
+   وتبقى النصوص التعريفية (القصة/القدرة) محليةً
+   هنا لأنها غير مخزّنة بالجدول أصلاً.
+════════════════════════════════════════════ */
+const _S = 'https://ybqgqfhxbuttxqipabqe.supabase.co/storage/v1/object/public/shop';
+
+let supabase;
+try {
+  const mod = await import('../database/config.js');
+  supabase = mod.supabase;
+} catch (e) {
+  supabase = { from: () => ({ select: () => Promise.resolve({ data: null }) }) };
+}
+
+async function loadCharactersFromDB() {
+  const map = {};
+  try {
+    const { data, error } = await supabase.from('characters').select('*');
+    if (error) throw error;
+    (data || []).forEach(row => {
+      map[row.id] = {
+        name: row.name || '',
+        icon: row.icon || '',
+      };
+    });
+  } catch (e) {
+    console.error('[help] فشل تحميل characters:', e.message);
+  }
+  return map;
+}
+const _dbChars = await loadCharactersFromDB();
+
+const CHARACTERS = [
+  { id:'Asber',   name:'اسبير',  enName:'Asber',  color:'#ff4d5e', img:`${_S}/characters/Asber/Asber/Asber.png`,
+    stats:{ kunya:'علياء', height:'178 سم', team:'اسبيتا' },
+    bio:[
+      'علي المنشد، المعروف أيضًا باسم <span class="hl-accent">السيد أسبير</span> (Said Asber)، هو <span class="hl">القائد الأعلى لفريق اسبيتا</span> والشخصية الرئيسية في القصة. لُقّب بـ"المنشد" لاعتياده إنشاد القصائد أثناء المهام التي كان يخوضها مع فريقه، وهو ما أصبح جزءًا من هويته المميزة.',
+      'وُلد عام <span class="hl">2008</span>، إلا أن أصوله الحقيقية لا تزال مجهولة. وتدور شائعات بأنه ينحدر من <span class="hl">الجمهورية الإسلامية الإيرانية</span>، نظرًا لإتقانه اللغة الفارسية واعتماده عليها في معظم نشاطه الرقمي.',
+      'تلقى تدريبه على يد عدد من الأساتذة القادمين من دول المغرب العربي، وكان معظمهم من <span class="hl">المملكة المغربية</span>، حيث اكتسب منهم خبرات متقدمة في مجال الأمن السيبراني وتحليل الأنظمة.',
+      'اشتهر بـ<span class="hl">ذاكرته الاستثنائية</span>، وقدرته العالية على تحليل الثغرات الأمنية وفهم آليات عملها، إضافةً إلى مهارته في تطوير حلول لمعالجتها. وقد برزت هذه القدرات خلال مشاركته في عمليات هجومية استهدفت خوادم داخل المغرب، مما أكسبه سمعة واسعة داخل عالم القصة وجعل اسمه مرتبطًا بالاحتراف والحنكة التقنية.'
+    ],
+    ability:[
+      'تتمحور مهمته حول تنفيذ <span class="hl-accent">عمليات اختراق</span> تستهدف السيرفرات من أجل إضعاف شبكة الأمن وتهيئة الطريق لفريقه لتحقيق النصر.',
+      'خلال مرحلة الليل، يستطيع اختيار <span class="hl">سيرفر واحد</span> لتنفيذ عملية اختراق عليه. يعتمد نجاحه على حسن اختيار الأهداف والتوقيت المناسب، لذلك يجب استخدام مهارته بحذر والتنسيق مع بقية أعضاء الفريق. <span class="hl">لا يستطيع أسبير استهداف اللاعبين بشكل مباشر</span>، كما أن بعض الليالي قد تمنعه قوانين اللعبة من استخدام مهارته.',
+      'يجب على لاعب أسبير <span class="hl-accent">المحافظة على سرية هويته</span> طوال مجريات اللعبة، لأن كشفه مبكرًا قد يمنح فريق كولم أفضلية كبيرة ويصعّب مهمة اسبيتا. يفوز أسبير عندما ينجح فريق اسبيتا في تحقيق شرط الفوز الخاص بهم قبل أن يتمكن فريق كولم من القضاء على جميع أفراد الفريق.'
+    ] },
+  { id:'Shether', name:'هانسر',    enName:'Hanser', color:'#ff4d5e', img:`${_S}/characters/Shether/Shether/Shether.png`,
+    stats:{ kunya:'هانسر', height:'185 سم', team:'اسبيتا' },
+    bio:[
+      'علي الخفاجي، المعروف أيضًا باسم <span class="hl-accent">هانسر</span> (Hanser)، هو مهندس حاسبات وشخصية بارزة ضمن <span class="hl">طاقم اسبيتا</span>، ويشغل منصب <span class="hl">الرجل الثاني فيه</span>، كما يُعرف بكونه الخليفة الأقرب إلى السيد اسبير وأحد أبرز شركائه في الجوانب التقنية والاستراتيجية.',
+      'وُلد عام <span class="hl">2008</span> في <span class="hl">البصرة</span>، حيث أبدى منذ سنواته الأولى شغفًا بعالم الحاسبات والتقنيات الحديثة، قبل أن يتجه إلى دراسة هندسة الحاسبات والتخصص في مجال الأمن السيبراني. وقد بنى خبراته التقنية من خلال البيئات العراقية المتخصصة في الأمن السيبراني، على خلاف ما تلقّى السيد اسبير خبراته في بيئات الأمن السيبراني التابعة لـ<span class="hl">الجمهورية الجزائرية الديمقراطية الشعبية والمملكة المغربية</span>، وهو ما أسهم في تكامل خبراتهما عند العمل معًا.',
+      'في مطلع شهر <span class="hl">تموز/يوليو من عام 2025</span>، شارك هانسر، إلى جانب السيد اسبير، في <span class="hl-accent">تأسيس طاقم اسبيتا</span>، وذلك عقب مرحلة شهدت إدراكهما لوجود خصم مشترك، إلى جانب شعورهما بالخيانة من بعض الحلفاء المقربين. وقد مثّل ذلك الحدث نقطة تحول أساسية أدّت إلى إنشاء الطاقم ووضع أسسه الفكرية والتنظيمية والتقنية.',
+      'يُعرف هانسر بكونه <span class="hl">مهندس الحاسبات الرئيسي</span> داخل طاقم اسبيتا، إذ يتولى الإشراف على الجوانب التقنية والهندسية، ويتميّز بخبرته في تصميم الأنظمة الحاسوبية، وتحليل الشبكات، ودراسة عناوين IP، وتتبع الأنشطة الرقمية، وتحليل البنية التحتية للشبكات، وإدارة الأنظمة عن بُعد، إلى جانب تقييم الثغرات الأمنية واختبارها ضمن بيئات مخصصة لذلك. وقد أسهمت هذه المهارات في ترسيخ مكانته باعتباره أحد أهم العقول التقنية في الطاقم.',
+      'ويُنظر إلى هانسر بوصفه أحد الأعمدة الأساسية التي قام عليها طاقم رهبر، إذ يجمع بين الرؤية التقنية والقدرة على التخطيط والتحليل، ويُعد من أبرز الشخصيات التي أسهمت في رسم المسار التقني للطاقم منذ تأسيسه، الأمر الذي جعله يحظى بمكانة بارزة بين أعضائه ومتابعيه.'
+    ],
+    ability:[
+      'تتمثل مهمة هانسر في تنفيذ <span class="hl-accent">عمليات اختراق تستهدف اللاعبين</span> داخل المباراة بهدف تعطيل قدراتهم وإرباك أدوارهم، مما يهيئ الطريق أمام أسبير لتنفيذ اختراقاته على السيرفرات بسرعة أكبر وكفاءة أعلى.',
+      'خلال مرحلة الليل، يمتلك هانسر القدرة على اختيار <span class="hl">لاعب واحد</span> لاستهدافه بعملية اختراق. ويعتمد نجاحه بصورة كبيرة على حسن اختيار الهدف والتوقيت المناسب، لذلك ينبغي استخدام مهارته بحكمة والتنسيق المستمر مع بقية أعضاء فريق اسبيتا. <span class="hl">يستطيع هانسر استهداف اللاعبين مباشرة</span>، إلا أن بعض الليالي قد تفرض قوانين اللعبة قيودًا تمنعه من استخدام قدرته.',
+      'يتوجب على لاعب هانسر <span class="hl-accent">الحفاظ على سرية هويته</span> طوال مجريات اللعبة، إذ إن كشفها في وقت مبكر قد يمنح فريق كولم أفضلية استراتيجية ويجعل مهمة فريق اسبيتا أكثر صعوبة.',
+      'يفوز هانسر إلى جانب أسبير وبقية أعضاء فريق اسبيتا عند تحقيق شرط الفوز الخاص بالفريق قبل أن يتمكن فريق كولم من كشف جميع أفراد اسبيتا والقضاء عليهم.'
+    ] },
+  { id:'Must',    name:'موست',   enName:'Must',   color:'#ff4d5e', img:`${_S}/characters/Must/Must/Must.png`,
+    stats:{ kunya:'موست', height:'181 سم', team:'اسببتا' },
+    bio:[
+      'يُعرف مصطفى اللامي، الملقب بـ <span class="hl-accent">موست</span> (Must)، بأنه <span class="hl">الرجل الثالث في طاقم «رهبر»</span>، والعقل العقائدي والاستراتيجي الذي يقف خلف العديد من القرارات المفصلية. وُلد عام <span class="hl">2008</span> في جمهورية العراق الديمقراطية الفيدرالية، وتحديدًا في العاصمة <span class="hl">بغداد</span>، حيث بدأت رحلته في عالم الفضاء الرقمي مبكرًا، ليلتحق بسيرفرات الأمن السيبراني التابعة لمؤسسات الصدر، وهناك صقل مهاراته في التحليل الجنائي الرقمي والاستخبارات المعلوماتية وبناء الاستراتيجيات.',
+      'لم يكن طريقه مفروشًا بالتحالفات؛ ففي بداياته الرقمية دخل في <span class="hl">صراعٍ شرس مع السيد «أسبير»</span>، وبلغ الخلاف ذروته حتى كان يهاجمه في أشعاره وخطاباته، ويصفه بالخائن، اعتراضًا على توجه أسبير نحو سيرفرات الأمن السيبراني في المغرب العربي. واستمر هذا العداء لسنوات، حتى جاء فجر <span class="hl">تموز/يوليو 2025</span>، حين نجحت وساطة «هانسر» في إنهاء النزاع، ليتحوّل الخصمان إلى حليفين جمعتهما غاية واحدة: إسقاط العدو المشترك.',
+      'برز اسم موست بوصفه <span class="hl-accent">أحد أبرز محللي الأدلة الرقمية</span> في هذا العالم الروائي، واشتهر بقدرته على تعقب الخصوم، وتحليل تحركاتهم، واستخلاص الأنماط الخفية من البيانات، ثم تحويل تلك المعلومات إلى تقارير استخباراتية دقيقة تدعم فريقه في اتخاذ القرار. ولم تكن إنجازاته قائمة على القوة وحدها، بل على الصبر، والدقة، والقدرة على قراءة ما يعجز الآخرون عن ملاحظته.',
+      'داخل طاقم «رهبر»، لا يُنظر إلى موست كمجرد مساعد، بل باعتباره <span class="hl">مهندسًا للاستراتيجيات</span>، وصاحب رؤية بعيدة المدى، والرجل الذي يسبق خصومه بخطوات، ويحوّل المعلومات إلى أفضلية، والشكوك إلى يقين، والفوضى إلى خططٍ محكمة. ولهذا ارتبط اسمه في الرواية بالحنكة، والانضباط، والقدرة على صناعة الفارق في أكثر اللحظات حرجًا، ليصبح أحد أكثر الشخصيات تأثيرًا وإثارةً في أحداث هذا العالم.'
+    ],
+    ability:[
+      'يؤدي موست دور <span class="hl-accent">جامع البيانات</span>، إذ تتمثل مهمته في تنفيذ عمليات استخباراتية سرية تستهدف اللاعبين داخل المباراة، بهدف جمع المعلومات وتزويد حلفائه بها لدعم خططهم وتحركاتهم.',
+      'خلال مرحلة الليل، يستطيع موست اختيار <span class="hl">لاعب واحد</span> لجمع البيانات عنه. وفي الليالي التي تسبق انضمامه إلى طاقم رهبر، إذا نجح في جمع معلومات عن أحد أفراد رهبر، فسيتمكن من <span class="hl">الانضمام إلى الطاقم ابتداءً من الليلة التالية</span>، ليحصل بعدها على القدرة على مواصلة جمع المعلومات عن بقية اللاعبين لصالح الفريق. أما إذا أخفق في العثور على أحد أفراد رهبر، فعليه تكرار المحاولة في الليالي اللاحقة حتى ينجح.',
+      'يعتمد هذا الدور على <span class="hl-accent">السرية المطلقة</span>؛ إذ يجب على لاعب موست إخفاء هويته طوال مجريات المباراة. فكشف شخصيته في وقت مبكر يمنح فريق كولم أفضلية استخباراتية كبيرة، ويعرّض خطط طاقم رهبر للخطر، مما قد يصعّب مهمة اسبيتا بشكل كبير.',
+      'يفوز موست مع طاقم رهبر عند تحقيق شرط الفوز الخاص بالفريق، وذلك قبل أن يتمكن فريق كولم من كشف جميع أفراد اسبيتا والقضاء عليهم.'
+    ] },
+  { id:'Uzmir',   name:'ريفور',  enName:'Revor',  color:'#ffffff', img:`${_S}/characters/Uzmir/Uzmir/Uzmir.png`,
+    stats:{ kunya:'ريفور', height:'182 سم', team:'كولم' },
+    bio:[
+      'يوسف الإدريسي، المعروف باسم <span class="hl-accent">ريفور</span> (Revor)، محلل أدلة رقمية بارز ضمن <span class="hl">فريق كولم</span>، وُلد وترعرع في مدينة الرباط، حيث انجذب منذ صغره إلى عالم تفكيك الألغاز الرقمية وتتبع آثار المخترقين.',
+      'في سن <span class="hl">الثالثة والعشرين</span>، انضم ريفور إلى نواة الفريق الأولى، وسرعان ما برز بدقته وصبره الاستثنائيين، ليصبح العنصر الذي يعتمد عليه رفاقه لكشف الحقيقة خلف كل هجوم، مهما حاول منفذه إخفاء أثره.',
+      'يجمع ريفور بين الحدس الرقمي الحاد والقدرة على قراءة أدق التفاصيل، وقد نسج مع رفاقه في الفريق رابطًا وثيقًا صقلته سنوات من العمل المشترك في الظل، دفاعًا عن سيرفرات وطنهم.'
+    ],
+    ability:[
+      'يشغل ريفور دور <span class="hl-accent">المحلل الجنائي</span> داخل المباراة، ومهمته تتبع مصدر الهجمات التي تستهدف السيرفرات، وتحديد الليلة والجهة التي نُفّذ منها الاختراق.',
+      'خلال مرحلة الليل، يمكن لريفور اختيار سيرفر لتحليله وتتبع الأنشطة المشبوهة عليه، إلا أن نتيجة تحليله <span class="hl">لا تظهر فورًا</span> بل تستغرق ليلتين كاملتين قبل أن تصل النتائج، لذلك يجب التخطيط للمستقبل لا الحاضر فقط.',
+      'يفوز ريفور إلى جانب فريق كولم عند نجاحهم في كشف وإقصاء جميع أفراد فريق اسبيتا قبل تحقيقهم لشرط الفوز الخاص بهم.'
+    ] },
+  { id:'Tald',    name:'إلريك',  enName:'Elric',  color:'#ffffff', img:`${_S}/characters/Tald/Tald/Tald.png`,
+    stats:{ kunya:'إلريك', height:'176 سم', team:'كولم' },
+    bio:[
+      'كريم الوردي، المعروف باسم <span class="hl-accent">إلريك</span> (Elric)، مهندس أنظمة ينتمي إلى <span class="hl">فريق كولم</span>، وُلد في مدينة فاس، وأتقن منذ صغره فن ترميم الأنظمة وإعادة بنائها بعد الضربات الرقمية.',
+      'في سن <span class="hl">الحادية والعشرين</span>، كان إلريك من الأعضاء الأوائل الذين انضموا إلى الفريق عند تأسيسه، وأثبت نفسه سريعًا بقدرته على إعادة إحياء الأنظمة المنهارة وكأن الاختراق لم يمسها من الأساس، وهي موهبة أنقذت الفريق أكثر من مرة.',
+      'يوصف بأنه العمود الذي يستند إليه رفاقه وقت الأزمات، هادئ ومنهجي، ويحرص دائمًا على أن يخرج الفريق من كل معركة أقوى مما كان عليه قبلها.'
+    ],
+    ability:[
+      'يشغل إلريك دور <span class="hl-accent">مصلح السيرفر</span> داخل المباراة، ومهمته إصلاح أي ضرر يلحق بالسيرفرات نتيجة عمليات الاختراق، وإعادتها إلى وضعها الطبيعي.',
+      'خلال مرحلة الليل، يستطيع إلريك اختيار <span class="hl">سيرفر واحد</span> لإصلاحه وترميم أي ثغرات استغلها اسبيتا فيه مسبقًا، مما يحدّ من الأضرار التراكمية ويمنح فريق كولم وقتًا إضافيًا لتنظيم صفوفه.',
+      'يفوز إلريك مع بقية أعضاء فريق كولم عند نجاحهم في إقصاء جميع أفراد فريق اسبيتا قبل أن يحقق اسبيتا شرط الفوز الخاص بهم.'
+    ] },
+  { id:'Bordo',   name:'بوردو',  enName:'Bordo',  color:'#ffffff', img:`${_S}/characters/Bordo/Bordo/Bordo.png`,
+    stats:{ kunya:'بوردو', height:'179 سم', team:'كولم' },
+    bio:[
+      'سفيان بوراس، المعروف باسم <span class="hl-accent">بوردو</span> (Bordo)، هو أحد أعمدة <span class="hl">فريق كولم</span>، وُلد وترعرع في مدينة طنجة، حيث انجذب منذ صغره إلى عالم الدفاع الرقمي وحماية البنية التحتية الحساسة.',
+      'في سن <span class="hl">الرابعة والعشرين</span>، كان بوردو من الوجوه الأساسية التي شاركت في بناء نواة الفريق الأولى، والتي تأسست لمواجهة تهديدات رقمية متصاعدة استهدفت سيرفرات المملكة، وسرعان ما برز بحسمه السريع وقوة حضوره، ليصبح خط الدفاع الأول ضد أي محاولة اختراق.',
+      'يجمع بوردو بين الانضباط الصارم والحسم في اللحظات الحرجة، وقد نسج مع رفاقه في الفريق رابطًا وثيقًا صقلته سنوات من العمل المشترك في الظل، دفاعًا عن سيرفرات وطنهم.'
+    ],
+    ability:[
+      'يشغل بوردو دور <span class="hl-accent">حارس السيرفر</span> داخل المباراة، ومهمته الأساسية حماية سيرفرات فريق كولم من محاولات الاختراق الليلية، إضافة إلى امتلاكه القدرة على اتخاذ قرارات حاسمة بحق اللاعبين المشتبه بهم.',
+      'خلال مرحلة الليل، يستطيع بوردو اختيار <span class="hl">لاعب واحد</span> لتحييده إذا توفرت لديه شكوك قوية بانتمائه لفريق اسبيتا. يجب استخدام هذه القدرة بحذر شديد، لأن استهداف لاعب بريء قد يقلب موازين المباراة لصالح اسبيتا مباشرة.',
+      'يفوز بوردو مع بقية أعضاء فريق كولم عند نجاحهم في إقصاء جميع أفراد فريق اسبيتا قبل أن يحقق اسبيتا شرط الفوز الخاص بهم.'
+    ] },
+  { id:'Saytm',   name:'سايتم',  enName:'Saitm',  color:'#ffffff', img:`${_S}/characters/Saytm/Saytm/Saytm.png`,
+    stats:{ kunya:'سايتم', height:'170 سم', team:'كولم' },
+    bio:[
+      'أنس الشرقاوي، المعروف باسم <span class="hl-accent">سايتم</span> (Saitm)، أصغر أعضاء <span class="hl">فريق كولم</span> سنًا، وُلد في مدينة مراكش، وانضم إلى الفريق في سن <span class="hl">التاسعة عشرة</span> بفضل موهبته المبكرة النادرة في حماية الأنظمة الحساسة.',
+      'رغم صغر سنه مقارنة برفاقه، إلا أنه أثبت نفسه بسرعة داخل الفريق، بفضل يقظته الدائمة وقدرته على استشعار الخطر قبل وقوعه، وهو ما جعله <span class="hl">الدرع الأول</span> الذي يحتمي به الفريق ليلًا.',
+      'يحمل سايتم لرفاقه في الفريق ولاءً كبيرًا، ويرى في كل سيرفر ينجو من هجوم انتصارًا جماعيًا يستحق أن يُروى، لا إنجازًا فرديًا.'
+    ],
+    ability:[
+      'يشغل سايتم دور <span class="hl-accent">طبيب السيرفر</span> داخل المباراة، ومهمته الأساسية حماية السيرفرات من محاولات الاختراق الليلية قبل وقوعها.',
+      'خلال مرحلة الليل، يستطيع سايتم اختيار <span class="hl">سيرفر واحد</span> لتحصينه ومنع أي محاولة اختراق تستهدفه في تلك الليلة، مما يمنح فريق كولم فرصة إضافية لإحباط خطط اسبيتا.',
+      'يفوز سايتم مع بقية أعضاء فريق كولم عند نجاحهم في إقصاء جميع أفراد فريق اسبيتا قبل أن يحقق اسبيتا شرط الفوز الخاص بهم.'
+    ] },
+  { id:'Morene',  name:'مورين',  enName:'Morene', color:'#ffffff', img:`${_S}/characters/Morene/Morene/Morene.png`,
+    stats:{ kunya:'؟', height:'؟' },
+    bio:[
+      'شخصية <span class="hl-accent">غامضة بامتياز</span> — لا يُعرف عنها شيء يُذكر: لا كنية، ولا عمر، ولا حتى طول. المعلومة الوحيدة المؤكدة بشأنها أنها <span class="hl">تقف في صف معادٍ للسيد أسبير</span>، مما يجعل نواياها الحقيقية لغزًا يثير فضول الجميع.'
+    ],
+    ability:[
+      'لا تملك مورين <span class="hl-accent">أي مهارة أو وظيفة خاصة</span> داخل المباراة — فهي مواطنة عادية بمعنى الكلمة، لا تعتمد على قدرة ليلية أو دور مميز.',
+      'سلاحها الوحيد هو صوتها: <span class="hl">يمكنها التصويت في كل يوم</span> من أيام اللعبة مثل باقي اللاعبين، معتمدة على الحدس والملاحظة والتحليل المنطقي لتحركات الآخرين بدلًا من أي قدرة خارقة.'
+    ] },
+];
+
+// ── دمج بيانات الجدول (اسم/صورة فقط) فوق النصوص المحلية ──
+// اللون يبقى محليًا لأنه مرتبط بالفريق (اسبيتا = أحمر، كولم = أبيض)
+CHARACTERS.forEach(ch => {
+  const db = _dbChars[ch.id];
+  if (!db) return;
+  if (db.name) ch.name = db.name;
+  if (db.icon) ch.img  = db.icon;
+});
+
+function statsCard(stats) {
+  if (!stats) return '';
+  const rows = [
+    stats.kunya  ? { label:'الكنية',  value:stats.kunya  } : null,
+    stats.height ? { label:'الطول',   value:stats.height } : null,
+    stats.team   ? { label:'الفريق',  value:stats.team   } : null,
+  ].filter(Boolean);
+  if (!rows.length) return '';
+  return `<div class="ch-stats">${rows.map(r =>
+    `<div class="ch-stat-row"><span class="ch-stat-label">${r.label}:</span><span class="ch-stat-value">${r.value}</span></div>`
+  ).join('')}</div>`;
+}
+function paragraphs(text) {
+  if (!text) return '';
+  const arr = Array.isArray(text) ? text : [text];
+  return arr.map(p => `<p class="ch-desc">${p}</p>`).join('');
+}
+
+function renderCharSlide(ch, i) {
+  return `
+  <div class="slide ch-slide" data-i="${i}" style="--char-col:${ch.color};">
+    <div class="ch-name-top">${ch.enName || ch.id}</div>
+    <div class="ch-top-row">
+      <div class="ch-portrait-wrap">
+        <div class="ch-portrait">
+          ${ch.img
+            ? `<img src="${ch.img}" alt="" onerror="imgOrPH(this,'full')">`
+            : `<i class="fas fa-user"></i>`}
+          ${statsCard(ch.stats)}
+        </div>
+      </div>
+      <div class="ch-side-text">
+        ${ch.bio ? `<div class="ch-section-label"><i class="fas fa-user"></i>نبذة</div>` : ''}
+        ${paragraphs(ch.bio || ch.desc)}
+      </div>
+    </div>
+    ${ch.ability ? `<div class="ch-desc-wrap"><div class="ch-ability-wrap"><div class="ch-section-label"><i class="fas fa-bolt"></i>المهمة والقدرة</div>${paragraphs(ch.ability)}</div></div>` : ''}
+  </div>
+`;
+}
+
+const trackChars = document.getElementById('track-chars');
+let visibleCharacters = CHARACTERS;
+function renderCharacters(list) {
+  visibleCharacters = list;
+  trackChars.innerHTML = list.map((ch, i) => renderCharSlide(ch, i)).join('');
+}
+renderCharacters(CHARACTERS);
+
+/* ══════════════════════════════════════════
+   محرّك الكاروسيل: Pointer Events بالكامل
+   (تعمل مع اللمس والفأرة معًا)، والتحكم يدويًا
+   بمحوري الأفقي (تبديل صفحة) والعمودي (تمرير
+   محتوى الصفحة) لتفادي تعارض السحب مع التمرير
+   الأصلي للمتصفح. صفحة واحدة بالضبط دائمًا،
+   بغض النظر عن قوة أو سرعة السحب.
+════════════════════════════════════════════ */
+function makePager(viewportId, trackId, dotsId, initialCount) {
+  const viewport = document.getElementById(viewportId);
+  const track = document.getElementById(trackId);
+  const dotsWrap = document.getElementById(dotsId);
+  let count = initialCount;
+  let index = 0;
+  let viewportW = viewport.clientWidth;
+  let startX = 0, startY = 0, curX = 0, curY = 0;
+  let axis = null, dragging = false;
+  let activeSlide = null, slideStartScroll = 0;
+  let velY = 0, lastY = 0, lastT = 0, momentumId = null;
+
+  function stopMomentum() {
+    if (momentumId) { cancelAnimationFrame(momentumId); momentumId = null; }
+  }
+  function runMomentum(slide) {
+    if (Math.abs(velY) < 0.02 || !slide) { momentumId = null; return; }
+    const max = slide.scrollHeight - slide.clientHeight;
+    let next = slide.scrollTop - velY * 16;
+    if (next <= 0 || next >= max) { velY = 0; slide.scrollTop = Math.max(0, Math.min(max, next)); momentumId = null; return; }
+    slide.scrollTop = next;
+    velY *= 0.94;
+    momentumId = requestAnimationFrame(() => runMomentum(slide));
+  }
+
+  let dots = [];
+  function buildDots() {
+    dotsWrap.innerHTML = Array.from({length:count}, (_,i) =>
+      `<div class="dot ${i===0?'active':''}" data-i="${i}"></div>`).join('');
+    dots = [...dotsWrap.children];
+    dots.forEach(d => d.addEventListener('click', () => goTo(+d.dataset.i)));
+  }
+  buildDots();
+
+  function setTransform(px, animate) {
+    track.style.transition = animate ? 'transform .32s cubic-bezier(.22,.61,.36,1)' : 'none';
+    track.style.transform = `translateX(${px}px)`;
+  }
+  function updateDots() {
+    dots.forEach((d, i) => d.classList.toggle('active', i === index));
+  }
+  function goTo(i, animate = true) {
+    index = Math.max(0, Math.min(count - 1, i));
+    viewportW = viewport.clientWidth;
+    setTransform(-index * viewportW, animate);
+    updateDots();
+  }
+  function rebuildDots(newCount) {
+    count = Math.max(newCount, 0);
+    buildDots();
+    goTo(0, false);
+  }
+
+  function getXY(e) {
+    if (e.touches && e.touches.length) return { x: e.touches[0].clientX, y: e.touches[0].clientY };
+    if (e.changedTouches && e.changedTouches.length) return { x: e.changedTouches[0].clientX, y: e.changedTouches[0].clientY };
+    return { x: e.clientX, y: e.clientY };
+  }
+
+  function onStart(e) {
+    if (e.type === 'mousedown' && e.button !== 0) return;
+    stopMomentum();
+    dragging = true; axis = null;
+    const p = getXY(e);
+    startX = curX = p.x; startY = curY = p.y;
+    viewportW = viewport.clientWidth;
+    activeSlide = e.target.closest('.ch-side-text, .slide');
+    slideStartScroll = activeSlide ? activeSlide.scrollTop : 0;
+    velY = 0; lastY = p.y; lastT = performance.now();
+    setTransform(-index * viewportW, false);
+    document.body.style.userSelect = 'none';
+  }
+
+  function onMove(e) {
+    if (!dragging) return;
+    const p = getXY(e);
+    curX = p.x; curY = p.y;
+    const dx = curX - startX, dy = curY - startY;
+    if (axis === null) {
+      if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+        axis = Math.abs(dx) > Math.abs(dy) ? 'x' : 'y';
+      }
+    }
+    if (axis === 'x') {
+      if (e.cancelable) e.preventDefault();
+      let delta = dx;
+      if ((index === 0 && delta > 0) || (index === count - 1 && delta < 0)) delta *= .35;
+      setTransform(-index * viewportW + delta, false);
+    } else if (axis === 'y' && activeSlide) {
+      if (e.cancelable) e.preventDefault();
+      activeSlide.scrollTop = slideStartScroll - dy;
+      const now = performance.now();
+      const dt = now - lastT;
+      if (dt > 0) { velY = (p.y - lastY) / dt; lastY = p.y; lastT = now; }
+    }
+  }
+
+  function onEnd() {
+    if (!dragging) return;
+    dragging = false;
+    if (axis === 'x') {
+      const delta = curX - startX;
+      const threshold = viewportW * 0.15;
+      if (delta < -threshold) goTo(index + 1);
+      else if (delta > threshold) goTo(index - 1);
+      else goTo(index);
+    }
+    if (axis === 'y' && activeSlide) runMomentum(activeSlide);
+    axis = null; activeSlide = null;
+    document.body.style.userSelect = '';
+  }
+
+  viewport.addEventListener('touchstart', onStart, { passive:true });
+  viewport.addEventListener('touchmove', onMove, { passive:false });
+  viewport.addEventListener('touchend', onEnd);
+  viewport.addEventListener('touchcancel', onEnd);
+  viewport.addEventListener('mousedown', onStart);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onEnd);
+
+  window.addEventListener('resize', () => goTo(index, false));
+  goTo(0, false);
+  return { goTo, rebuildDots };
+}
+
+const gamePager = makePager('carousel-game', 'track-game', 'dots-game', GAME_PAGES.length);
+const charsPager = makePager('carousel-chars', 'track-chars', 'dots-chars', CHARACTERS.length);
+
+/* ══════════════════════════════════════════
+   تصفية الشخصيات حسب الفريق (الزر السفلي ^)
+════════════════════════════════════════════ */
+(function initCharFilter() {
+  const btn = document.getElementById('ch-filter-btn');
+  const sheet = document.getElementById('ch-filter-sheet');
+  const backdrop = document.getElementById('ch-filter-backdrop');
+  const optsWrap = document.getElementById('ch-filter-options');
+  const nav = document.getElementById('bottom-nav');
+  if (!btn || !sheet || !backdrop || !optsWrap) return;
+
+  function positionAboveNav() {
+    if (nav) sheet.style.bottom = nav.offsetHeight + 'px';
+  }
+  positionAboveNav();
+  window.addEventListener('resize', positionAboveNav);
+
+  const teams = [];
+  CHARACTERS.forEach(ch => {
+    const t = ch.stats && ch.stats.team;
+    if (t && !teams.includes(t)) teams.push(t);
+  });
+  const options = ['الجميع', ...teams];
+  let activeTeam = 'الجميع';
+
+  optsWrap.innerHTML = options.map(t =>
+    `<button class="ch-filter-opt ${t===activeTeam?'active':''}" data-team="${t}">${t}</button>`
+  ).join('');
+
+  function applyFilter(team) {
+    activeTeam = team;
+    [...optsWrap.children].forEach(b => b.classList.toggle('active', b.dataset.team === team));
+    btn.classList.toggle('filtered', team !== 'الجميع');
+    const list = team === 'الجميع'
+      ? CHARACTERS
+      : CHARACTERS.filter(ch => ch.stats && ch.stats.team === team);
+    renderCharacters(list);
+    charsPager.rebuildDots(list.length);
+  }
+
+  function openSheet() {
+    sheet.classList.add('open');
+    backdrop.classList.add('open');
+    btn.classList.add('open');
+  }
+  function closeSheet() {
+    sheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    btn.classList.remove('open');
+  }
+
+  btn.addEventListener('click', () => {
+    sheet.classList.contains('open') ? closeSheet() : openSheet();
+  });
+  backdrop.addEventListener('click', closeSheet);
+  optsWrap.addEventListener('click', (e) => {
+    const b = e.target.closest('.ch-filter-opt');
+    if (!b) return;
+    applyFilter(b.dataset.team);
+    closeSheet();
+  });
+  window.closeCharFilterSheet = closeSheet;
+})();
+
+/* ══════════════════════════════════════════
+   التبديل بين شرح اللعبة وشرح الشخصيات
+════════════════════════════════════════════ */
+window.switchView = function(name) {
+  document.getElementById('view-game').classList.toggle('active', name==='game');
+  document.getElementById('view-chars').classList.toggle('active', name==='chars');
+  document.getElementById('btn-game').classList.toggle('active', name==='game');
+  document.getElementById('btn-chars').classList.toggle('active', name==='chars');
+  document.getElementById('dots-game').classList.toggle('active', name==='game');
+  document.getElementById('dots-chars').classList.toggle('active', name==='chars');
+  document.getElementById('ch-filter-btn').classList.toggle('shown', name==='chars');
+  if (name !== 'chars' && window.closeCharFilterSheet) window.closeCharFilterSheet();
+};
+
+// تلقائيًا: يفتح شرح اللعبة عند التشغيل
+switchView('game');
+
+})();
+</script>
+</body>
+</html>

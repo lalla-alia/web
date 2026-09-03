@@ -72,8 +72,8 @@ function pagePath(p) {
   return '/p/' + p.id + (slugify(p.title) ? '-' + slugify(p.title) : '');
 }
 
-function qaPath(p, item) {
-  return pagePath(p) + '/' + item.id + (slugify(item.q) ? '-' + slugify(item.q) : '');
+function qaPath(p, index) {
+  return pagePath(p) + '/' + (index + 1);
 }
 
 function jsonLd(obj) {
@@ -81,9 +81,9 @@ function jsonLd(obj) {
 }
 
 async function handlePageSSR(request, url, env) {
-  const parts = url.pathname.split('/').filter(Boolean); // ['p', 'pageId-slug', 'qaId-slug'?]
+  const parts = url.pathname.split('/').filter(Boolean); // ['p', 'pageId-slug', 'qaNumber'?]
   const pageId = (parts[1] || '').split('-')[0];
-  const qaId = parts[2] ? parts[2].split('-')[0] : null;
+  const qaNumber = parts[2] && /^\d+$/.test(parts[2]) ? parseInt(parts[2], 10) : null;
 
   const shellRes = await env.ASSETS.fetch(new URL('/index.html', url.origin));
   let shellHtml = await shellRes.text();
@@ -99,12 +99,15 @@ async function handlePageSSR(request, url, env) {
     return new Response(shellHtml, { status: 404, headers: { 'content-type': 'text/html; charset=utf-8' } });
   }
 
-  const qaItem = qaId && page.qa ? page.qa.find((x) => x.id === qaId) : null;
+  const qaItem = qaNumber && page.qa ? page.qa[qaNumber - 1] : null;
+
+  const charsSummary = page.type === 'chars' ? (page.characters || []).map((c) => c.name).filter(Boolean).join('، ') : '';
+  const gameSummary = page.type === 'game' ? (page.sections || []).map((s) => s.title).filter(Boolean).join(' - ') : '';
 
   const title = qaItem ? `${qaItem.q} | ${page.title}` : page.title;
   const description = qaItem
     ? stripHtml(qaItem.a).slice(0, 160)
-    : stripHtml(page.content || page.subtitle || page.title).slice(0, 160);
+    : stripHtml(page.content || charsSummary || gameSummary || page.subtitle || page.title).slice(0, 160);
   const canonical = url.origin + url.pathname;
 
   let content;
@@ -114,8 +117,18 @@ async function handlePageSSR(request, url, env) {
     content =
       `<h1>${escHtml(page.title)}</h1>` +
       (page.qa || []).map((i) => `<h2>${escHtml(i.q)}</h2><div>${i.a || ''}</div>`).join('');
-  } else if (page.type === 'content') {
+  } else if (page.type === 'content' || page.type === 'hub') {
     content = `<h1>${escHtml(page.title)}</h1><div>${page.content || ''}</div>`;
+  } else if (page.type === 'chars') {
+    content =
+      `<h1>${escHtml(page.title)}</h1>` +
+      (page.characters || [])
+        .map((c) => `<h2>${escHtml(c.name || '')}</h2><div>${Array.isArray(c.bio) ? c.bio.join('') : c.bio || ''}</div>`)
+        .join('');
+  } else if (page.type === 'game') {
+    content =
+      `<h1>${escHtml(page.title)}</h1>` +
+      (page.sections || []).map((s) => `<h2>${escHtml(s.title || '')}</h2><div>${s.body || ''}</div>`).join('');
   } else {
     content = `<h1>${escHtml(page.title)}</h1>`;
   }
@@ -166,8 +179,8 @@ async function handleSitemap(url, env) {
     (list || []).forEach((p) => {
       urls.push(url.origin + pagePath(p));
       if (p.type === 'qa') {
-        (p.qa || []).forEach((item) => {
-          if (item.id) urls.push(url.origin + qaPath(p, item));
+        (p.qa || []).forEach((item, idx) => {
+          urls.push(url.origin + qaPath(p, idx));
         });
       }
       if (p.children && p.children.length) walk(p.children);

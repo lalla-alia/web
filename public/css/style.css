@@ -236,6 +236,13 @@
     min-width:40px;
   }
   .content-table tr:nth-child(even){background:rgba(255,255,255,.03);}
+  /* صور داخل خلايا الجدول: مصغّرة بدل شريط كامل العرض */
+  .content-table td img{max-width:140px;max-height:140px;object-fit:cover;border-radius:8px;display:block;}
+  .content-table td .media-block.in-table{width:120px;max-width:100%;margin:4px 0;}
+  .content-table td .media-block.in-table img,
+  .content-table td .media-block.in-table video{width:100%;height:auto;border-radius:8px;}
+  .content-table td .media-block.in-table .media-controls{top:4px;left:4px;}
+  .content-table td .media-block.in-table .mctrl{width:24px;height:24px;}
 
   /* وضع الكتابة بدون إلهاء */
   body.focus-mode .sidebar{display:none !important;}
@@ -365,7 +372,12 @@
     color:var(--text);border-radius:var(--radius-lg);font-family:'Tajawal';font-size:14px;transition:.15s;
   }
   .modal input:focus, .modal select:focus, .modal textarea:focus{outline:none;border-color:var(--accent);}
-  .type-select{display:flex;gap:18px;margin-bottom:12px;justify-content:center;}
+  .type-select{display:flex;gap:16px 18px;margin-bottom:12px;justify-content:center;flex-wrap:wrap;}
+  .modal select.admin-select, select.admin-select{
+    width:100%;padding:11px 16px;margin-bottom:12px;background:var(--bg-panel);border:1.5px solid var(--line);
+    color:var(--text);border-radius:var(--radius-lg);font-family:'Tajawal';font-size:14px;transition:.15s;
+  }
+  select.admin-select:focus{outline:none;border-color:var(--accent);}
   .type-opt{
     flex:0 0 auto;padding:6px 2px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-dim);
     cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-family:'Tajawal';transition:.15s;
@@ -447,3 +459,75 @@
   .resend-row{padding:16px 20px 0;font-size:.81rem;color:rgba(255,255,255,.35);text-align:center;}
   .sp{width:16px;height:16px;border:2px solid rgba(255,255,255,.25);border-top-color:#fff;border-radius:50%;animation:lockSpin .7s linear infinite;display:none;flex-shrink:0;}
   @keyframes lockSpin{to{transform:rotate(360deg);}}
+
+  /* ═══ قسم نهاية الصفحة: بطاقة رابط تنقل لصفحة أخرى ═══ */
+  .end-link-wrap{margin-top:30px;}
+  .end-link-card{
+    display:flex;align-items:center;justify-content:space-between;gap:14px;
+    padding:16px 18px;border:1px solid var(--line);border-radius:var(--radius-lg);
+    background:var(--bg-soft);color:var(--text);text-decoration:none;transition:.15s;
+  }
+  .end-link-card:hover{border-color:var(--accent);background:rgba(45,212,191,.06);}
+  .end-link-card:active{transform:scale(.99);}
+  .end-link-text{display:flex;flex-direction:column;gap:3px;min-width:0;}
+  .end-link-label{font-size:11.5px;color:var(--text-dim);font-weight:700;}
+  .end-link-title{font-size:15.5px;font-weight:800;color:var(--text);}
+  .end-link-card .enter-arrow{transform:scaleX(-1);color:var(--accent);flex-shrink:0;}
+
+  /* ═══ نوع صفحة "الشخصيات" ═══ */
+  .chars-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
+  .chars-filter-chip{
+    padding:7px 16px;border-radius:30px;border:1px solid var(--line);background:transparent;
+    color:var(--text-dim);font-family:'Tajawal';font-size:13px;cursor:pointer;transition:.15s;
+  }
+  .chars-filter-chip:hover{color:var(--text);border-color:var(--text-dim);}
+  .chars-filter-chip.active{color:#0a0a0d;background:var(--accent);border-color:var(--accent);font-weight:700;}
+  .chars-grid{display:flex;flex-direction:column;gap:16px;}
+  .char-card{
+    border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;
+    background:var(--bg-panel);box-shadow:var(--shadow-card);
+  }
+  .char-top{display:flex;gap:16px;align-items:flex-start;margin-bottom:10px;}
+  .char-portrait{
+    flex:0 0 92px;width:92px;height:92px;border-radius:var(--radius-md);overflow:hidden;
+    background:linear-gradient(155deg,var(--bg-soft),#0a0a10);
+    display:flex;align-items:center;justify-content:center;position:relative;
+  }
+  .char-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
+  .char-portrait.ph::before{
+    content:'';width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);
+  }
+  .char-info{flex:1;min-width:0;}
+  .char-name{font-size:17px;font-weight:800;color:var(--text);font-family:'Cairo',sans-serif;}
+  .char-enname{font-size:12.5px;color:var(--text-dim);margin-top:1px;direction:ltr;text-align:right;}
+  .char-stats{display:flex;flex-direction:column;gap:3px;margin-top:8px;}
+  .char-stat{font-size:12.5px;color:var(--text-dim);}
+  .char-stat b{color:var(--accent-blue);font-weight:700;}
+  .char-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
+  .ch-section-label{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;color:var(--accent-blue);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;}
+  .ch-section-label svg{width:14px;height:14px;flex-shrink:0;}
+  .ch-desc{font-size:14px;line-height:1.85;color:var(--text-dim);margin:0 0 10px;}
+  .ch-desc:last-child{margin-bottom:0;}
+  .char-actions{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);justify-content:flex-start;}
+  .char-form{border:1px dashed var(--line);border-radius:var(--radius-md);padding:14px;margin-top:6px;}
+  .char-form .qa-form{display:flex;gap:8px;flex-wrap:wrap;}
+  .char-form .qa-form input{flex:1;min-width:120px;margin-bottom:0;}
+  .char-img-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .char-img-preview{
+    width:56px;height:56px;border-radius:var(--radius-sm);overflow:hidden;flex-shrink:0;
+    background:var(--bg-soft);border:1px solid var(--line);
+  }
+  .char-img-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* ═══ نوع صفحة "اللعبة" ═══ */
+  .game-section{margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--line);}
+  .game-section:last-of-type{border-bottom:none;}
+  .game-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
+  .game-sec-title{font-size:19px;font-weight:800;margin:0;color:var(--accent-blue);}
+  .game-sec-body{min-height:auto;}
+  .game-sec-title-input{
+    width:100%;padding:11px 16px;margin-bottom:10px;background:var(--bg-panel);border:1.5px solid var(--line);
+    color:var(--text);border-radius:var(--radius-lg);font-family:'Cairo';font-size:16px;font-weight:700;transition:.15s;
+  }
+  .game-sec-title-input:focus{outline:none;border-color:var(--accent);}
+  .game-sec-editing{border:1px dashed var(--line);border-radius:var(--radius-md);padding:14px;}
