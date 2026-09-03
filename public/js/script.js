@@ -1571,7 +1571,7 @@ function buildPageManagePanel(p, addLabel){
   return panel;
 }
 
-/* ═══ قسم نهاية الصفحة: بطاقة رابط تنقل الزائر لصفحة أخرى داخل الموقع ═══ */
+/* ═══ قسم نهاية الصفحة: رابط ينقل الزائر لصفحة أخرى ═══ */
 function renderEndLinkSection(p){
   const link = p.endLink;
   if(!link || !link.targetId) return null;
@@ -1580,8 +1580,7 @@ function renderEndLinkSection(p){
   const wrap=document.createElement('div'); wrap.className='end-link-wrap';
   const card=document.createElement('a');
   card.href='#'; card.className='end-link-card';
-  card.innerHTML = `<span class="end-link-text"><span class="end-link-label"></span><span class="end-link-title"></span></span><span class="enter-arrow"></span>`;
-  card.querySelector('.end-link-label').textContent = link.label && link.label.trim() ? link.label.trim() : 'تابع القراءة';
+  card.innerHTML = `<span class="end-link-title"></span><span class="enter-arrow"></span>`;
   card.querySelector('.end-link-title').textContent = target.title;
   card.querySelector('.enter-arrow').innerHTML = ICONS.arrowEnd;
   card.onclick=(e)=>{ e.preventDefault(); state.activePage=target.id; save(); renderAll(); window.scrollTo({top:0, behavior:'smooth'}); };
@@ -1594,11 +1593,6 @@ function buildEndLinkAdminPanel(p, rerender){
   panel.innerHTML='<div class="label">قسم نهاية الصفحة (رابط ينقل الزائر لصفحة أخرى)</div>';
 
   const form=document.createElement('div'); form.className='qa-form';
-  const labelInput=document.createElement('input');
-  labelInput.placeholder='نص الزر (اختياري، افتراضيًا "تابع القراءة")';
-  labelInput.value = (p.endLink && p.endLink.label) || '';
-  form.appendChild(labelInput);
-
   const select=document.createElement('select');
   select.className='admin-select';
   select.innerHTML='<option value="">-- بدون قسم نهاية (إخفاء) --</option>';
@@ -1616,7 +1610,7 @@ function buildEndLinkAdminPanel(p, rerender){
   const actions=document.createElement('div'); actions.className='qa-edit-actions';
   const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary'; saveBtn.textContent='حفظ';
   saveBtn.onclick=()=>{
-    if(select.value) p.endLink = { targetId: select.value, label: labelInput.value.trim() };
+    if(select.value) p.endLink = { targetId: select.value };
     else delete p.endLink;
     save();
     showToast('✓ تم حفظ قسم نهاية الصفحة');
@@ -1716,38 +1710,7 @@ function renderHubPage(p){
   });
   mainContent.appendChild(grid);
 
-  if(!(p.children && p.children.length)){
-    const empty=document.createElement('div');
-    empty.className='empty-hint';
-    empty.style.marginTop='10px';
-    empty.textContent='لا توجد أقسام بعد.';
-    mainContent.appendChild(empty);
-  }
-
   if(state.admin){
-    const panel=document.createElement('div');
-    panel.className='admin-panel';
-    panel.innerHTML='<div class="label">إدارة الأقسام</div>';
-    const row=document.createElement('div'); row.className='admin-row';
-    const addBtn=labeledBtn('plus','إضافة قسم جديد');
-    addBtn.onclick=()=>openPageModal(p.id);
-    row.appendChild(addBtn);
-    const rename=labeledBtn('pencil','إعادة تسمية');
-    rename.onclick=()=>{
-      const newTitle=prompt('العنوان الجديد:', p.title);
-      if(newTitle && newTitle.trim()){ p.title=newTitle.trim(); save(); renderAll(); }
-    };
-    row.appendChild(rename);
-    const subBtn=labeledBtn('doc','الوصف الفرعي');
-    subBtn.title='تعديل الوصف الفرعي (يمكن تركه فارغًا لإخفائه)';
-    subBtn.onclick=()=>{
-      const current=getSubtitle(p, '');
-      const newSub=prompt('الوصف الفرعي (اتركه فارغًا لإخفائه):', current);
-      if(newSub!==null){ p.subtitle=newSub.trim(); save(); renderAll(); }
-    };
-    row.appendChild(subBtn);
-    panel.appendChild(row);
-    mainContent.appendChild(panel);
     mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderHubPage(p)));
   }
 
