@@ -521,7 +521,7 @@ function buildSearchIndex(){
         (p.characters||[]).forEach(ch=>{
           const bioText=stripHtml(Array.isArray(ch.bio)?ch.bio.join(' '):(ch.bio||''));
           const abilityText=stripHtml(Array.isArray(ch.ability)?ch.ability.join(' '):(ch.ability||''));
-          const nm=(ch.name||'')+' '+(ch.enName||'');
+          const nm=(ch.name||'');
           index.push({ pageId:p.id, pageTitle:p.title, kind:'char', charId:ch.id, charName:nm.trim(), text:(nm+' '+bioText+' '+abilityText).trim() });
         });
       } else if(type==='game'){
@@ -972,7 +972,14 @@ async function uploadMediaFile(file, kind){
   const { error } = await supaClient.storage.from(MEDIA_BUCKET).upload(path, file, { cacheControl:'3600', upsert:false });
   if(error){
     console.error('media upload error:', error.message);
-    showToast('⚠️ فشل رفع الملف: '+error.message);
+    /* "row-level security" هنا يعني أن سياسات RLS على مخزن Supabase (bucket:
+       media) لا تسمح بالرفع بعد — هذا إعداد على مستوى المشروع في Supabase
+       وليس خللًا في الكود، فنعرض توضيحًا أدق بدل رسالة Supabase الخام. */
+    if(/row-level security/i.test(error.message)){
+      showToast('⚠️ الرفع مرفوض من إعدادات الصلاحيات (RLS) في Supabase — راجع سياسات bucket "media"');
+    } else {
+      showToast('⚠️ فشل رفع الملف: '+error.message);
+    }
     return null;
   }
   const { data } = supaClient.storage.from(MEDIA_BUCKET).getPublicUrl(path);
@@ -1852,7 +1859,6 @@ function charDescHtml(ch){ return (ch && ch.ability) || ''; }
 
 function statsCard(ch){
   const stats=[
-    ch.stats && ch.stats.kunya  ? {label:'الكنية', value:ch.stats.kunya}  : null,
     ch.stats && ch.stats.height ? {label:'الطول',  value:ch.stats.height} : null,
     ch.stats && ch.stats.team   ? {label:'الفريق', value:ch.stats.team}   : null,
   ].filter(Boolean);
@@ -1862,6 +1868,23 @@ function statsCard(ch){
   ).join('')}</div>`;
 }
 
+/* رابط مباشر لشخصية معيّنة: يُبنى بنفس مخطط روابط الأسئلة (رقم الشخصية
+   داخل مصفوفة p.characters الكاملة، بصرف النظر عن أي تصفية حسب الفريق). */
+function copyCharLink(p, ch){
+  const idx = (p.characters||[]).indexOf(ch);
+  if(idx<0) return;
+  const path = buildPagePath(p, ch, idx);
+  const url = location.origin + path;
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(url).then(
+      ()=> showToast('✓ تم نسخ رابط الشخصية'),
+      ()=> prompt('انسخ رابط الشخصية:', url)
+    );
+  } else {
+    prompt('انسخ رابط الشخصية:', url);
+  }
+}
+
 function renderCharSlide(p, ch, i){
   const slide=document.createElement('div');
   slide.className='char-slide';
@@ -1869,17 +1892,17 @@ function renderCharSlide(p, ch, i){
   slide.dataset.charId=ch.id;
 
   slide.innerHTML = `
-    <div class="char-name-top">${escapeHtml(ch.name||'بدون اسم')}${ch.enName?` <span class="char-name-en">(${escapeHtml(ch.enName)})</span>`:''}</div>
+    <div class="char-name-top">${escapeHtml(ch.name||'بدون اسم')}</div>
     <div class="char-top-row">
+      <div class="char-bio-side">
+        <div class="ch-section-label">${ICONS.user}<span>قصة الشخصية</span></div>
+        <div class="char-bio-text">${sanitizeHtml(charBioHtml(ch)) || '<p class="ch-desc empty-hint">لا توجد قصة بعد.</p>'}</div>
+      </div>
       <div class="char-portrait-wrap">
         <div class="char-portrait">
           ${ch.img ? `<img src="${ch.img}" alt="" onerror="this.closest('.char-portrait').classList.add('ph');this.remove();">` : ''}
           ${statsCard(ch)}
         </div>
-      </div>
-      <div class="char-bio-side">
-        <div class="ch-section-label">${ICONS.user}<span>قصة الشخصية</span></div>
-        <div class="char-bio-text">${sanitizeHtml(charBioHtml(ch)) || '<p class="ch-desc empty-hint">لا توجد قصة بعد.</p>'}</div>
       </div>
     </div>
     <div class="char-desc-wrap">
@@ -1890,8 +1913,11 @@ function renderCharSlide(p, ch, i){
 
   if(!ch.img) slide.querySelector('.char-portrait').classList.add('ph');
 
+  const actions=document.createElement('div'); actions.className='row-actions char-actions';
+  const linkBtn=iconBtn('link','نسخ رابط هذه الشخصية','mini-btn');
+  linkBtn.onclick=()=> copyCharLink(p, ch);
+  actions.appendChild(linkBtn);
   if(state.admin){
-    const actions=document.createElement('div'); actions.className='row-actions char-actions';
     const edit=iconBtn('pencil','تعديل الشخصية','mini-btn');
     edit.onclick=()=> renderCharEditForm(p, ch, slide);
     actions.appendChild(edit);
@@ -1904,8 +1930,8 @@ function renderCharSlide(p, ch, i){
       }
     };
     actions.appendChild(del);
-    slide.appendChild(actions);
   }
+  slide.appendChild(actions);
 
   return slide;
 }
@@ -1916,17 +1942,13 @@ function buildCharForm(p, existing, onDone){
   const nameRow=document.createElement('div'); nameRow.className='qa-form';
   const nameInput=document.createElement('input'); nameInput.placeholder='اسم الشخصية';
   nameInput.value = (existing && existing.name) || '';
-  const enInput=document.createElement('input'); enInput.placeholder='الاسم بالإنجليزية (اختياري)';
-  enInput.value = (existing && existing.enName) || '';
-  nameRow.appendChild(nameInput); nameRow.appendChild(enInput);
+  nameRow.appendChild(nameInput);
   wrap.appendChild(nameRow);
 
   const statsRow=document.createElement('div'); statsRow.className='qa-form';
-  const kunyaInput=document.createElement('input'); kunyaInput.placeholder='الكنية (اختياري)';
-  kunyaInput.value = (existing && existing.stats && existing.stats.kunya) || '';
   const heightInput=document.createElement('input'); heightInput.placeholder='الطول (اختياري)';
   heightInput.value = (existing && existing.stats && existing.stats.height) || '';
-  statsRow.appendChild(kunyaInput); statsRow.appendChild(heightInput);
+  statsRow.appendChild(heightInput);
   wrap.appendChild(statsRow);
 
   /* الفريق يُختار من القائمة التي حدّدها المؤسس مسبقًا (p.teams)، وليس
@@ -1988,14 +2010,19 @@ function buildCharForm(p, existing, onDone){
     const data = {
       id: (existing && existing.id) || uid(),
       name,
-      enName: enInput.value.trim(),
       img: imgUrl,
-      stats: { kunya:kunyaInput.value.trim(), height:heightInput.value.trim(), team:teamSelect.value },
+      stats: { height:heightInput.value.trim(), team:teamSelect.value },
       bio: cleanContentHtml(bioBox),
       ability: cleanContentHtml(descBox)
     };
     if(existing){
-      Object.assign(existing, data);
+      existing.name = data.name;
+      existing.img = data.img;
+      existing.stats = data.stats;
+      existing.bio = data.bio;
+      existing.ability = data.ability;
+      delete existing.enName;
+      if(existing.stats) delete existing.stats.kunya;
     } else {
       p.characters = p.characters || [];
       p.characters.push(data);
@@ -2151,8 +2178,13 @@ function renderCharsPage(p){
   mainContent.innerHTML = html;
 
   const teams = ensureCharTeams(p);
-  const activeTeam = mainContent.dataset.activeTeam || 'الجميع';
   const all = p.characters || [];
+  /* رابط مباشر لشخصية معيّنة (pendingQaNumber رقمها ضمن p.characters الكاملة)
+     يُلغي أي تصفية فريق مفعّلة حاليًا لضمان ظهور الشخصية المطلوبة فورًا. */
+  if(pendingQaNumber!==null && all[pendingQaNumber-1]){
+    mainContent.dataset.activeTeam = 'الجميع';
+  }
+  const activeTeam = mainContent.dataset.activeTeam || 'الجميع';
   const list = (activeTeam==='الجميع' || !teams.length)
     ? all
     : all.filter(ch=> ch.stats && ch.stats.team===activeTeam);
@@ -2184,6 +2216,20 @@ function renderCharsPage(p){
     charsPagerList = list;
     const topbar = mainContent.querySelector('.chars-topbar');
     if(topbar) topbar.appendChild(buildCharFilterMenu(p, list, pager));
+
+    /* استهلاك رابط الشخصية المباشر: نقفز للشريحة المطلوبة ونوهّجها مرة واحدة */
+    if(pendingQaNumber!==null){
+      const targetChar = all[pendingQaNumber-1];
+      const idxInList = targetChar ? list.indexOf(targetChar) : -1;
+      if(idxInList>-1){
+        pager.goTo(idxInList, false);
+        setTimeout(()=>{
+          const el=document.querySelector(`.char-slide[data-char-id="${targetChar.id}"]`);
+          if(el) flashHighlight(el);
+        }, 80);
+      }
+      pendingQaNumber=null;
+    }
   } else {
     charsPagerInstance = null;
     charsPagerList = [];
