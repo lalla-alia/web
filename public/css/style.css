@@ -472,50 +472,102 @@
   .end-link-card .enter-arrow{transform:scaleX(-1);color:var(--text-dim);transition:.15s;flex-shrink:0;}
   .end-link-card:hover .enter-arrow{color:var(--accent);}
 
-  /* ═══ نوع صفحة "الشخصيات" ═══ */
-  .chars-filter{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
-  .chars-filter-chip{
-    padding:7px 16px;border-radius:30px;border:1px solid var(--line);background:transparent;
-    color:var(--text-dim);font-family:'Tajawal';font-size:13px;cursor:pointer;transition:.15s;
+  /* ═══ نوع صفحة "الشخصيات": شرائح بملء الشاشة + سحب أفقي ═══ */
+  .char-carousel-outer{margin-top:6px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-panel);border:1px solid var(--line);}
+  .char-carousel-viewport{overflow:hidden;touch-action:pan-y;cursor:grab;direction:ltr;}
+  .char-carousel-viewport:active{cursor:grabbing;}
+  .char-carousel-track{display:flex;will-change:transform;}
+  .char-slide{
+    flex:0 0 100%;width:100%;box-sizing:border-box;
+    padding:22px 18px 20px;direction:rtl;position:relative;
   }
-  .chars-filter-chip:hover{color:var(--text);border-color:var(--text-dim);}
-  .chars-filter-chip.active{color:#0a0a0d;background:var(--accent);border-color:var(--accent);font-weight:700;}
-  .chars-grid{display:flex;flex-direction:column;gap:16px;}
-  .char-card{
-    border:1px solid var(--line);border-radius:var(--radius-lg);padding:18px;
-    background:var(--bg-panel);box-shadow:var(--shadow-card);
-  }
-  .char-top{display:flex;gap:16px;align-items:flex-start;margin-bottom:10px;}
+  .char-name-top{text-align:center;font-size:1.1rem;font-weight:900;color:var(--text);font-family:'Cairo',sans-serif;padding-bottom:14px;}
+  .char-name-en{font-size:.78rem;font-weight:500;color:var(--text-dim);direction:ltr;display:inline-block;}
+  .char-top-row{display:flex;align-items:stretch;gap:14px;min-height:220px;}
+  /* الصورة أولًا في الترتيب فتظهر في أقصى اليمين ضمن الاتجاه العربي للشريحة */
+  .char-portrait-wrap{flex:0 0 44%;max-width:44%;position:relative;}
   .char-portrait{
-    flex:0 0 92px;width:92px;height:92px;border-radius:var(--radius-md);overflow:hidden;
-    background:linear-gradient(155deg,var(--bg-soft),#0a0a10);
-    display:flex;align-items:center;justify-content:center;position:relative;
+    position:relative;width:100%;height:100%;min-height:220px;border-radius:var(--radius-md);
+    overflow:hidden;background:linear-gradient(155deg,var(--bg-soft),#0a0a10);
   }
   .char-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
-  .char-portrait.ph::before{
-    content:'';width:34px;height:34px;border-radius:50%;background:rgba(255,255,255,.08);
-  }
-  .char-info{flex:1;min-width:0;}
-  .char-name{font-size:17px;font-weight:800;color:var(--text);font-family:'Cairo',sans-serif;}
-  .char-enname{font-size:12.5px;color:var(--text-dim);margin-top:1px;direction:ltr;text-align:right;}
-  .char-stats{display:flex;flex-direction:column;gap:3px;margin-top:8px;}
-  .char-stat{font-size:12.5px;color:var(--text-dim);}
-  .char-stat b{color:var(--accent-blue);font-weight:700;}
-  .char-section{margin-top:14px;padding-top:14px;border-top:1px solid var(--line);}
-  .ch-section-label{display:flex;align-items:center;gap:7px;font-size:11.5px;font-weight:800;color:var(--accent-blue);margin-bottom:8px;text-transform:uppercase;letter-spacing:.4px;}
-  .ch-section-label svg{width:14px;height:14px;flex-shrink:0;}
-  .ch-desc{font-size:14px;line-height:1.85;color:var(--text-dim);margin:0 0 10px;}
-  .ch-desc:last-child{margin-bottom:0;}
-  .char-actions{margin-top:12px;padding-top:10px;border-top:1px solid var(--line);justify-content:flex-start;}
+  .char-portrait.ph{display:flex;align-items:center;justify-content:center;}
+  .char-portrait.ph::before{content:'';width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);}
+  .char-stats{position:absolute;top:10px;right:10px;z-index:2;display:flex;flex-direction:column;gap:4px;pointer-events:none;}
+  .char-stat-row{font-size:.68rem;line-height:1.4;text-shadow:0 1px 5px rgba(0,0,0,.85),0 0 12px rgba(0,0,0,.6);}
+  .char-stat-label{color:var(--accent-blue);font-weight:800;}
+  .char-stat-value{color:#fff;font-weight:600;}
+  .char-bio-side{flex:1;min-width:0;display:flex;flex-direction:column;gap:8px;}
+  .ch-section-label{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:800;color:var(--accent-blue);margin-bottom:2px;text-transform:uppercase;letter-spacing:.4px;}
+  .ch-section-label svg{width:13px;height:13px;flex-shrink:0;}
+  .char-bio-text, .char-desc-text{font-size:13.5px;line-height:1.85;color:var(--text-dim);}
+  .char-bio-text .ch-desc, .char-desc-text .ch-desc{margin:0 0 10px;}
+  .char-bio-text .ch-desc:last-child, .char-desc-text .ch-desc:last-child{margin-bottom:0;}
+  .char-bio-text p, .char-desc-text p{margin:0 0 10px;}
+  .char-bio-text p:last-child, .char-desc-text p:last-child{margin-bottom:0;}
+  .char-desc-wrap{margin-top:16px;padding-top:16px;border-top:1px solid var(--line);}
+  .char-actions{margin-top:16px;padding-top:12px;border-top:1px solid var(--line);justify-content:flex-start;}
   .char-form{border:1px dashed var(--line);border-radius:var(--radius-md);padding:14px;margin-top:6px;}
+  .char-form-standalone{padding:20px 18px;}
   .char-form .qa-form{display:flex;gap:8px;flex-wrap:wrap;}
   .char-form .qa-form input{flex:1;min-width:120px;margin-bottom:0;}
-  .char-img-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .char-img-row{display:flex;align-items:center;gap:12px;margin:0 0 12px;}
   .char-img-preview{
     width:56px;height:56px;border-radius:var(--radius-sm);overflow:hidden;flex-shrink:0;
     background:var(--bg-soft);border:1px solid var(--line);
   }
   .char-img-preview img{width:100%;height:100%;object-fit:cover;display:block;}
+
+  /* شريط أسفل الشرائح: نقاط + زر تصفح/تصفية */
+  .char-carousel-footer{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 4px 4px;position:relative;}
+  .char-dots{display:flex;align-items:center;gap:7px;}
+  .char-dot{width:6px;height:6px;border-radius:50%;background:var(--line);cursor:pointer;transition:.25s;}
+  .char-dot.active{width:18px;border-radius:4px;background:var(--accent);}
+  .char-filter-wrap{position:relative;}
+  .char-filter-btn{
+    display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--line);color:var(--text-dim);
+    padding:7px 14px;border-radius:30px;font-family:'Tajawal';font-size:12.5px;cursor:pointer;transition:.15s;
+  }
+  .char-filter-btn:hover{color:var(--text);border-color:var(--text-dim);}
+  .char-filter-btn svg{transform:rotate(180deg);width:11px;height:11px;}
+  .char-filter-backdrop{
+    position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:65;
+  }
+  .char-filter-backdrop.open{opacity:1;pointer-events:auto;}
+  .char-filter-sheet{
+    position:fixed;left:0;right:0;bottom:0;z-index:66;max-height:60vh;overflow-y:auto;
+    background:var(--bg-soft);border-top:1px solid var(--line);border-radius:20px 20px 0 0;
+    padding:16px 18px 26px;transform:translateY(16px);opacity:0;pointer-events:none;
+    transition:transform .25s cubic-bezier(.22,.61,.36,1), opacity .2s ease;
+  }
+  .char-filter-sheet.open{transform:translateY(0);opacity:1;pointer-events:auto;}
+  .char-filter-teams{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .team-chip{
+    padding:7px 16px;border-radius:30px;border:1px solid var(--line);background:transparent;
+    color:var(--text-dim);font-family:'Tajawal';font-size:13px;cursor:pointer;transition:.15s;
+  }
+  .team-chip:hover{color:var(--text);border-color:var(--text-dim);}
+  .team-chip.active{color:#0a0a0d;background:var(--accent);border-color:var(--accent);font-weight:700;}
+  .char-filter-names{display:flex;flex-direction:column;}
+  .char-filter-name{
+    background:none;border:none;border-top:1px solid var(--line);padding:12px 4px;
+    color:var(--text);font-family:'Tajawal';font-size:14px;text-align:right;cursor:pointer;transition:.15s;
+  }
+  .char-filter-names .char-filter-name:first-child{border-top:none;}
+  .char-filter-name:hover{color:var(--accent-blue);}
+
+  /* لوحة إدارة الفرق */
+  .teams-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+  .team-chip-admin{
+    display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 14px;border-radius:30px;
+    background:var(--bg-panel);border:1px solid var(--line);color:var(--text);font-size:13px;
+  }
+
+  @media (max-width:480px){
+    .char-top-row{flex-direction:column;min-height:0;}
+    .char-portrait-wrap{max-width:100%;width:100%;height:220px;}
+    .char-portrait{min-height:220px;}
+  }
 
   /* ═══ نوع صفحة "اللعبة" ═══ */
   .game-section{margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--line);}

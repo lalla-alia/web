@@ -570,7 +570,7 @@ function flashHighlight(el){
 function scrollToTextMatch(query){
   const q=(query||'').trim().toLowerCase();
   if(!q) return false;
-  const boxes=document.querySelectorAll('#mainContent .content-box, #mainContent .ch-desc, #mainContent .game-sec-body');
+  const boxes=document.querySelectorAll('#mainContent .content-box, #mainContent .game-sec-body');
   for(const box of boxes){
     const walker=document.createTreeWalker(box, NodeFilter.SHOW_TEXT);
     let node;
@@ -601,9 +601,19 @@ function goToSearchResult(m){
       }
     }, 60);
   } else if(m.kind==='char' && m.charId){
+    mainContent.dataset.activeTeam='الجميع';
+    renderMain();
     setTimeout(()=>{
-      const el=document.querySelector(`.char-card[data-char-id="${m.charId}"]`);
-      if(el) flashHighlight(el); else window.scrollTo({top:0, behavior:'smooth'});
+      const idx = charsPagerList.findIndex(ch=> ch.id===m.charId);
+      if(idx>-1 && charsPagerInstance){
+        charsPagerInstance.goTo(idx);
+        setTimeout(()=>{
+          const el=document.querySelector(`.char-slide[data-char-id="${m.charId}"]`);
+          if(el) flashHighlight(el);
+        }, 340);
+      } else {
+        window.scrollTo({top:0, behavior:'smooth'});
+      }
     }, 60);
   } else if(m.kind==='gamesec' && m.secId){
     setTimeout(()=>{
@@ -1719,104 +1729,134 @@ function renderHubPage(p){
 }
 
 /* ══════════════════════════════════════════════════════════
-   نوع صفحة "الشخصيات": فريق من الشخصيات، لكل شخصية صورة، اسم،
-   بيانات مختصرة (كنية/طول/فريق)، نبذة، ومهمة/قدرة.
+   نوع صفحة "الشخصيات": فريق من الشخصيات يُعرض على شكل شرائح
+   بملء الشاشة (شخصية واحدة كاملة في كل مرة)، والانتقال بينها
+   بالسحب/التمرير الأفقي تمامًا كتصميم help.html المرجعي:
+   - اسم الشخصية: أعلى الوسط.
+   - صورة الشخصية: أعلى يمين الصفحة.
+   - قصة الشخصية: أعلى يسار الصفحة (بجانب الصورة مباشرة).
+   - وصف الشخصية: أسفل الصورة والقصة.
+   الفرق نفسها عنصر أساسي يحدّده المؤسس مسبقًا (p.teams)، وعند
+   إضافة/تعديل شخصية يُختار فريقها من تلك القائمة عبر قائمة منسدلة،
+   لا بكتابة حرة. يمكن أيضًا تصفية الشرائح حسب الفريق أو القفز
+   مباشرة لاسم شخصية معيّنة عبر لوحة سفلية، كالملف الأصلي.
    ══════════════════════════════════════════════════════════ */
-function charParagraphs(text){
-  if(!text) return '';
-  const arr = Array.isArray(text) ? text : [text];
-  return arr.map(t=>`<p class="ch-desc">${sanitizeHtml(t)}</p>`).join('');
+
+let charsPagerInstance = null;
+let charsPagerList = [];
+function ensureCharTeams(p){ p.teams = p.teams || []; return p.teams; }
+
+/* ─── لوحة إدارة الفرق: المؤسس يضيف/يحذف أسماء الفرق هنا فقط،
+   وهي المصدر الوحيد الذي تُبنى منه قائمة الاختيار عند كل شخصية ─── */
+function buildTeamsAdminPanel(p, rerender){
+  const teams = ensureCharTeams(p);
+  const panel=document.createElement('div'); panel.className='admin-panel';
+  panel.innerHTML='<div class="label">فرق الشخصيات</div>';
+
+  if(teams.length){
+    const list=document.createElement('div'); list.className='teams-list';
+    teams.forEach((t,i)=>{
+      const chip=document.createElement('span'); chip.className='team-chip-admin';
+      const nameSpan=document.createElement('span'); nameSpan.textContent=t;
+      chip.appendChild(nameSpan);
+      const rm=iconBtn('close','حذف الفريق','mini-btn');
+      rm.onclick=()=>{
+        if(confirm('حذف فريق "'+t+'"؟ لن يتأثر أي وصف مكتوب سابقًا لأي شخصية.')){
+          teams.splice(i,1); save(); rerender();
+        }
+      };
+      chip.appendChild(rm);
+      list.appendChild(chip);
+    });
+    panel.appendChild(list);
+  } else {
+    const empty=document.createElement('div'); empty.className='empty-hint'; empty.style.marginBottom='10px';
+    empty.textContent='لم تُضف أي فرق بعد — أضف أول فريق ليصبح متاحًا عند إنشاء الشخصيات.';
+    panel.appendChild(empty);
+  }
+
+  const row=document.createElement('div'); row.className='qa-form'; row.style.marginTop='6px';
+  const input=document.createElement('input'); input.placeholder='اسم فريق جديد';
+  row.appendChild(input);
+  panel.appendChild(row);
+
+  const actions=document.createElement('div'); actions.className='qa-edit-actions';
+  const addBtn=document.createElement('button'); addBtn.className='text-btn primary'; addBtn.textContent='إضافة الفريق';
+  addBtn.onclick=()=>{
+    const v=input.value.trim();
+    if(!v) return;
+    if(teams.includes(v)){ input.value=''; return; }
+    teams.push(v); save();
+    showToast('✓ تمت إضافة الفريق');
+    rerender();
+  };
+  input.addEventListener('keydown', e=>{ if(e.key==='Enter'){ e.preventDefault(); addBtn.click(); } });
+  actions.appendChild(addBtn);
+  panel.appendChild(actions);
+  return panel;
 }
 
-function buildCharCard(p, ch, i, list){
-  const card=document.createElement('div');
-  card.className='char-card';
-  card.dataset.charId=ch.id;
+function charBioHtml(ch){ return (ch && ch.bio) || ''; }
+function charDescHtml(ch){ return (ch && ch.ability) || ''; }
 
-  const top=document.createElement('div'); top.className='char-top';
-  const portrait=document.createElement('div'); portrait.className='char-portrait';
-  if(ch.img){
-    portrait.innerHTML=`<img src="${ch.img}" alt="" onerror="this.closest('.char-portrait').classList.add('ph');this.remove();">`;
-  } else {
-    portrait.classList.add('ph');
-  }
-  top.appendChild(portrait);
-
-  const info=document.createElement('div'); info.className='char-info';
-  const nameEl=document.createElement('div'); nameEl.className='char-name';
-  nameEl.textContent = ch.name || 'بدون اسم';
-  info.appendChild(nameEl);
-  if(ch.enName){
-    const enEl=document.createElement('div'); enEl.className='char-enname';
-    enEl.textContent = ch.enName;
-    info.appendChild(enEl);
-  }
+function statsCard(ch){
   const stats=[
-    ch.stats && ch.stats.kunya ? {label:'الكنية', value:ch.stats.kunya} : null,
-    ch.stats && ch.stats.height ? {label:'الطول', value:ch.stats.height} : null,
-    ch.stats && ch.stats.team ? {label:'الفريق', value:ch.stats.team} : null,
+    ch.stats && ch.stats.kunya  ? {label:'الكنية', value:ch.stats.kunya}  : null,
+    ch.stats && ch.stats.height ? {label:'الطول',  value:ch.stats.height} : null,
+    ch.stats && ch.stats.team   ? {label:'الفريق', value:ch.stats.team}   : null,
   ].filter(Boolean);
-  if(stats.length){
-    const statsWrap=document.createElement('div'); statsWrap.className='char-stats';
-    statsWrap.innerHTML = stats.map(s=>`<span class="char-stat"><b>${escapeHtml(s.label)}:</b> ${escapeHtml(s.value)}</span>`).join('');
-    info.appendChild(statsWrap);
-  }
-  top.appendChild(info);
-  card.appendChild(top);
+  if(!stats.length) return '';
+  return `<div class="char-stats">${stats.map(s=>
+    `<div class="char-stat-row"><span class="char-stat-label">${escapeHtml(s.label)}:</span><span class="char-stat-value">${escapeHtml(s.value)}</span></div>`
+  ).join('')}</div>`;
+}
 
-  if(ch.bio){
-    const bioWrap=document.createElement('div'); bioWrap.className='char-section';
-    bioWrap.innerHTML = `<div class="ch-section-label">${ICONS.user}<span>نبذة</span></div>`;
-    const bioBody=document.createElement('div'); bioBody.innerHTML=charParagraphs(ch.bio);
-    bioWrap.appendChild(bioBody);
-    card.appendChild(bioWrap);
-  }
-  if(ch.ability){
-    const abWrap=document.createElement('div'); abWrap.className='char-section';
-    abWrap.innerHTML = `<div class="ch-section-label">${ICONS.gamepad}<span>المهمة والقدرة</span></div>`;
-    const abBody=document.createElement('div'); abBody.innerHTML=charParagraphs(ch.ability);
-    abWrap.appendChild(abBody);
-    card.appendChild(abWrap);
-  }
+function renderCharSlide(p, ch, i){
+  const slide=document.createElement('div');
+  slide.className='char-slide';
+  slide.dataset.i=i;
+  slide.dataset.charId=ch.id;
+
+  slide.innerHTML = `
+    <div class="char-name-top">${escapeHtml(ch.name||'بدون اسم')}${ch.enName?` <span class="char-name-en">(${escapeHtml(ch.enName)})</span>`:''}</div>
+    <div class="char-top-row">
+      <div class="char-portrait-wrap">
+        <div class="char-portrait">
+          ${ch.img ? `<img src="${ch.img}" alt="" onerror="this.closest('.char-portrait').classList.add('ph');this.remove();">` : ''}
+          ${statsCard(ch)}
+        </div>
+      </div>
+      <div class="char-bio-side">
+        <div class="ch-section-label">${ICONS.user}<span>قصة الشخصية</span></div>
+        <div class="char-bio-text">${sanitizeHtml(charBioHtml(ch)) || '<p class="ch-desc empty-hint">لا توجد قصة بعد.</p>'}</div>
+      </div>
+    </div>
+    <div class="char-desc-wrap">
+      <div class="ch-section-label">${ICONS.doc}<span>وصف الشخصية</span></div>
+      <div class="char-desc-text">${sanitizeHtml(charDescHtml(ch)) || '<p class="ch-desc empty-hint">لا يوجد وصف بعد.</p>'}</div>
+    </div>
+  `;
+
+  if(!ch.img) slide.querySelector('.char-portrait').classList.add('ph');
 
   if(state.admin){
-    /* الترقيم/التصفية حسب الفريق تعرض قائمة مُصفّاة، لذا يجب أن يعمل النقل
-       لأعلى/أسفل على المصفوفة الحقيقية p.characters (بحسب هوية الشخصية) لا
-       على مؤشر القائمة المصفّاة، وإلا يبدو الزر يعمل دون أن يُحفظ فعليًا. */
-    const fullList = p.characters || [];
     const actions=document.createElement('div'); actions.className='row-actions char-actions';
-    if(i>0){
-      const up=iconBtn('up','نقل لأعلى','mini-btn');
-      up.onclick=()=>{
-        const idx=fullList.indexOf(ch);
-        if(idx>0){ const t=fullList[idx-1]; fullList[idx-1]=fullList[idx]; fullList[idx]=t; save(); renderCharsPage(p); }
-      };
-      actions.appendChild(up);
-    }
-    if(i<list.length-1){
-      const down=iconBtn('down','نقل لأسفل','mini-btn');
-      down.onclick=()=>{
-        const idx=fullList.indexOf(ch);
-        if(idx>-1 && idx<fullList.length-1){ const t=fullList[idx+1]; fullList[idx+1]=fullList[idx]; fullList[idx]=t; save(); renderCharsPage(p); }
-      };
-      actions.appendChild(down);
-    }
     const edit=iconBtn('pencil','تعديل الشخصية','mini-btn');
-    edit.onclick=()=> renderCharEditForm(p, ch, card);
+    edit.onclick=()=> renderCharEditForm(p, ch, slide);
     actions.appendChild(edit);
     const del=iconBtn('trash','حذف الشخصية','mini-btn');
     del.onclick=()=>{
       if(confirm('حذف هذه الشخصية؟')){
-        const idx=fullList.indexOf(ch);
-        if(idx>-1) fullList.splice(idx,1);
+        const idx=(p.characters||[]).indexOf(ch);
+        if(idx>-1) p.characters.splice(idx,1);
         save(); renderCharsPage(p);
       }
     };
     actions.appendChild(del);
-    card.appendChild(actions);
+    slide.appendChild(actions);
   }
 
-  return card;
+  return slide;
 }
 
 function buildCharForm(p, existing, onDone){
@@ -1835,10 +1875,24 @@ function buildCharForm(p, existing, onDone){
   kunyaInput.value = (existing && existing.stats && existing.stats.kunya) || '';
   const heightInput=document.createElement('input'); heightInput.placeholder='الطول (اختياري)';
   heightInput.value = (existing && existing.stats && existing.stats.height) || '';
-  const teamInput=document.createElement('input'); teamInput.placeholder='الفريق (اختياري)';
-  teamInput.value = (existing && existing.stats && existing.stats.team) || '';
-  statsRow.appendChild(kunyaInput); statsRow.appendChild(heightInput); statsRow.appendChild(teamInput);
+  statsRow.appendChild(kunyaInput); statsRow.appendChild(heightInput);
   wrap.appendChild(statsRow);
+
+  /* الفريق يُختار من القائمة التي حدّدها المؤسس مسبقًا (p.teams)، وليس
+     نصًا حرًا — إن لم تُضف أي فرق بعد، يظهر تنبيه لإضافتها أولًا. */
+  const teams = ensureCharTeams(p);
+  const teamLbl=document.createElement('div'); teamLbl.className='field-label'; teamLbl.textContent='الفريق';
+  wrap.appendChild(teamLbl);
+  const teamSelect=document.createElement('select'); teamSelect.className='admin-select';
+  teamSelect.innerHTML='<option value="">-- بدون فريق --</option>' +
+    teams.map(t=>`<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join('');
+  if(existing && existing.stats && existing.stats.team) teamSelect.value = existing.stats.team;
+  wrap.appendChild(teamSelect);
+  if(!teams.length){
+    const hint=document.createElement('div'); hint.className='helper-note';
+    hint.innerHTML = ICONS.up + '<span>لا توجد فرق بعد — أضف فريقًا من لوحة "فرق الشخصيات" أسفل الصفحة أولًا.</span>';
+    wrap.appendChild(hint);
+  }
 
   let imgUrl = (existing && existing.img) || '';
   const imgRow=document.createElement('div'); imgRow.className='char-img-row';
@@ -1860,19 +1914,19 @@ function buildCharForm(p, existing, onDone){
   imgRow.appendChild(preview); imgRow.appendChild(imgLabel);
   wrap.appendChild(imgRow);
 
-  const bioLbl=document.createElement('div'); bioLbl.className='field-label'; bioLbl.textContent='نبذة';
+  const bioLbl=document.createElement('div'); bioLbl.className='field-label'; bioLbl.textContent='قصة الشخصية';
   wrap.appendChild(bioLbl);
   const bioBox=document.createElement('div'); bioBox.className='content-box'; bioBox.contentEditable=true; bioBox.style.minHeight='70px';
-  bioBox.innerHTML = sanitizeHtml((existing && (Array.isArray(existing.bio)?existing.bio.join(''):existing.bio)) || '');
+  bioBox.innerHTML = sanitizeHtml((existing && existing.bio) || '');
   attachEditable(bioBox, ()=>{}, {media:false});
   wrap.appendChild(bioBox);
 
-  const abilityLbl=document.createElement('div'); abilityLbl.className='field-label'; abilityLbl.style.marginTop='8px'; abilityLbl.textContent='المهمة والقدرة (اختياري)';
-  wrap.appendChild(abilityLbl);
-  const abilityBox=document.createElement('div'); abilityBox.className='content-box'; abilityBox.contentEditable=true; abilityBox.style.minHeight='70px';
-  abilityBox.innerHTML = sanitizeHtml((existing && (Array.isArray(existing.ability)?existing.ability.join(''):existing.ability)) || '');
-  attachEditable(abilityBox, ()=>{}, {media:false});
-  wrap.appendChild(abilityBox);
+  const descLbl=document.createElement('div'); descLbl.className='field-label'; descLbl.style.marginTop='8px'; descLbl.textContent='وصف الشخصية (اختياري)';
+  wrap.appendChild(descLbl);
+  const descBox=document.createElement('div'); descBox.className='content-box'; descBox.contentEditable=true; descBox.style.minHeight='70px';
+  descBox.innerHTML = sanitizeHtml((existing && existing.ability) || '');
+  attachEditable(descBox, ()=>{}, {media:false});
+  wrap.appendChild(descBox);
 
   const actions=document.createElement('div'); actions.className='qa-edit-actions';
   const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary';
@@ -1885,9 +1939,9 @@ function buildCharForm(p, existing, onDone){
       name,
       enName: enInput.value.trim(),
       img: imgUrl,
-      stats: { kunya:kunyaInput.value.trim(), height:heightInput.value.trim(), team:teamInput.value.trim() },
+      stats: { kunya:kunyaInput.value.trim(), height:heightInput.value.trim(), team:teamSelect.value },
       bio: cleanContentHtml(bioBox),
-      ability: cleanContentHtml(abilityBox)
+      ability: cleanContentHtml(descBox)
     };
     if(existing){
       Object.assign(existing, data);
@@ -1907,9 +1961,134 @@ function buildCharForm(p, existing, onDone){
   return wrap;
 }
 
-function renderCharEditForm(p, ch, cardEl, index){
+function renderCharEditForm(p, ch, slideEl){
   const form = buildCharForm(p, ch, ()=> renderCharsPage(p));
-  cardEl.replaceWith(form);
+  form.classList.add('char-form-standalone');
+  slideEl.replaceWith(form);
+}
+
+/* ─── محرّك الشرائح: سحب/تمرير أفقي بشخصية واحدة كاملة في كل مرة،
+   يعمل باللمس والفأرة معًا، بنفس أسلوب help.html المرجعي. ─── */
+function makeCharPager(viewport, track, dotsWrap, count){
+  let index=0, viewportW=viewport.clientWidth;
+  let startX=0, startY=0, curX=0, axis=null, dragging=false;
+  let dots=[];
+
+  function buildDots(){
+    dotsWrap.innerHTML = Array.from({length:count}, (_,i)=>
+      `<div class="char-dot ${i===0?'active':''}" data-i="${i}"></div>`).join('');
+    dots=[...dotsWrap.children];
+    dots.forEach(d=> d.addEventListener('click', ()=> goTo(+d.dataset.i)));
+  }
+  buildDots();
+
+  function setTransform(px, animate){
+    track.style.transition = animate ? 'transform .32s cubic-bezier(.22,.61,.36,1)' : 'none';
+    track.style.transform = `translateX(${px}px)`;
+  }
+  function updateDots(){ dots.forEach((d,i)=> d.classList.toggle('active', i===index)); }
+  function goTo(i, animate=true){
+    index = Math.max(0, Math.min(count-1, i));
+    viewportW = viewport.clientWidth;
+    setTransform(-index*viewportW, animate);
+    updateDots();
+  }
+
+  function getXY(e){
+    if(e.touches && e.touches.length) return {x:e.touches[0].clientX, y:e.touches[0].clientY};
+    if(e.changedTouches && e.changedTouches.length) return {x:e.changedTouches[0].clientX, y:e.changedTouches[0].clientY};
+    return {x:e.clientX, y:e.clientY};
+  }
+  function onStart(e){
+    if(e.type==='mousedown' && e.button!==0) return;
+    if(e.target.closest('.char-bio-text, .char-desc-text, button, a')) return; /* السماح بتحديد النص والنقر على الأزرار */
+    dragging=true; axis=null;
+    const p=getXY(e);
+    startX=curX=p.x; startY=p.y;
+    viewportW=viewport.clientWidth;
+    setTransform(-index*viewportW, false);
+  }
+  function onMove(e){
+    if(!dragging) return;
+    const p=getXY(e);
+    curX=p.x;
+    const dx=curX-startX, dy=p.y-startY;
+    if(axis===null){
+      if(Math.abs(dx)>6 || Math.abs(dy)>6) axis = Math.abs(dx)>Math.abs(dy) ? 'x' : 'y';
+      else return;
+    }
+    if(axis!=='x'){ dragging=false; return; } /* حركة عمودية: نتركها لتمرير الصفحة الطبيعي */
+    if(e.cancelable) e.preventDefault();
+    let d=dx;
+    if((index===0 && d>0) || (index===count-1 && d<0)) d*=.35;
+    setTransform(-index*viewportW+d, false);
+  }
+  function onEnd(){
+    if(!dragging) return;
+    dragging=false;
+    if(axis!=='x') return;
+    const delta=curX-startX;
+    const threshold=viewportW*0.15;
+    if(delta<-threshold) goTo(index+1);
+    else if(delta>threshold) goTo(index-1);
+    else goTo(index);
+  }
+
+  viewport.addEventListener('touchstart', onStart, {passive:true});
+  viewport.addEventListener('touchmove', onMove, {passive:false});
+  viewport.addEventListener('touchend', onEnd);
+  viewport.addEventListener('touchcancel', onEnd);
+  viewport.addEventListener('mousedown', onStart);
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onEnd);
+  window.addEventListener('resize', ()=> goTo(index, false));
+
+  goTo(0, false);
+  return { goTo, get index(){ return index; } };
+}
+
+/* ─── لوحة سفلية: تصفية حسب الفريق أو القفز مباشرة لاسم شخصية،
+   بنفس فكرة زر الفرق في الملف الأصلي. ─── */
+function buildCharFilterSheet(p, list, pager){
+  const teams = ensureCharTeams(p).filter(t=> list.some(ch=> ch.stats && ch.stats.team===t));
+  const sheetWrap=document.createElement('div'); sheetWrap.className='char-filter-wrap';
+
+  const btn=document.createElement('button'); btn.className='char-filter-btn'; btn.type='button';
+  btn.innerHTML = ICONS.chevron + '<span>تصفح الشخصيات</span>';
+  const backdrop=document.createElement('div'); backdrop.className='char-filter-backdrop';
+  const sheet=document.createElement('div'); sheet.className='char-filter-sheet';
+
+  if(teams.length){
+    const teamsRow=document.createElement('div'); teamsRow.className='char-filter-teams';
+    const allChip=document.createElement('button'); allChip.className='team-chip active'; allChip.textContent='الجميع';
+    allChip.onclick=()=>{ mainContent.dataset.activeTeam='الجميع'; renderCharsPage(p); };
+    teamsRow.appendChild(allChip);
+    teams.forEach(t=>{
+      const chip=document.createElement('button'); chip.className='team-chip'; chip.textContent=t;
+      chip.onclick=()=>{ mainContent.dataset.activeTeam=t; renderCharsPage(p); };
+      teamsRow.appendChild(chip);
+    });
+    sheet.appendChild(teamsRow);
+  }
+
+  const namesList=document.createElement('div'); namesList.className='char-filter-names';
+  list.forEach((ch,i)=>{
+    const nameBtn=document.createElement('button'); nameBtn.className='char-filter-name';
+    nameBtn.textContent = ch.name || 'بدون اسم';
+    nameBtn.onclick=()=>{ pager.goTo(i); closeSheet(); };
+    namesList.appendChild(nameBtn);
+  });
+  sheet.appendChild(namesList);
+
+  function openSheet(){ sheet.classList.add('open'); backdrop.classList.add('open'); }
+  function closeSheet(){ sheet.classList.remove('open'); backdrop.classList.remove('open'); }
+  btn.onclick=()=> sheet.classList.contains('open') ? closeSheet() : openSheet();
+  backdrop.onclick=closeSheet;
+
+  sheetWrap.appendChild(btn);
+  sheetWrap.appendChild(backdrop);
+  sheetWrap.appendChild(sheet);
+  return sheetWrap;
 }
 
 function renderCharsPage(p){
@@ -1918,33 +2097,38 @@ function renderCharsPage(p){
   if(sub) html += `<div class="page-sub">${escapeHtml(sub)}</div>`;
   mainContent.innerHTML = html;
 
-  const teams=[];
-  (p.characters||[]).forEach(ch=>{
-    const t = ch.stats && ch.stats.team;
-    if(t && !teams.includes(t)) teams.push(t);
-  });
-  let activeTeam = mainContent.dataset.activeTeam || 'الجميع';
-  if(teams.length){
-    const filterWrap=document.createElement('div'); filterWrap.className='chars-filter';
-    const opts=['الجميع', ...teams];
-    opts.forEach(t=>{
-      const chip=document.createElement('button');
-      chip.className='chars-filter-chip'+(t===activeTeam?' active':'');
-      chip.textContent=t;
-      chip.onclick=()=>{ mainContent.dataset.activeTeam=t; renderCharsPage(p); };
-      filterWrap.appendChild(chip);
-    });
-    mainContent.appendChild(filterWrap);
-  }
+  const teams = ensureCharTeams(p);
+  const activeTeam = mainContent.dataset.activeTeam || 'الجميع';
+  const all = p.characters || [];
+  const list = (activeTeam==='الجميع' || !teams.length)
+    ? all
+    : all.filter(ch=> ch.stats && ch.stats.team===activeTeam);
 
-  const list = (p.characters||[]).filter(ch=> activeTeam==='الجميع' || !teams.length || (ch.stats && ch.stats.team===activeTeam));
-  const grid=document.createElement('div'); grid.className='chars-grid';
-  list.forEach((ch,i)=> grid.appendChild(buildCharCard(p, ch, i, list)));
-  mainContent.appendChild(grid);
+  const carouselOuter=document.createElement('div'); carouselOuter.className='char-carousel-outer';
+  const viewport=document.createElement('div'); viewport.className='char-carousel-viewport';
+  const track=document.createElement('div'); track.className='char-carousel-track';
+  list.forEach((ch,i)=> track.appendChild(renderCharSlide(p, ch, i)));
+  viewport.appendChild(track);
+  carouselOuter.appendChild(viewport);
+  mainContent.appendChild(carouselOuter);
 
-  if(!list.length){
+  const footerRow=document.createElement('div'); footerRow.className='char-carousel-footer';
+  const dotsWrap=document.createElement('div'); dotsWrap.className='char-dots';
+  footerRow.appendChild(dotsWrap);
+  mainContent.appendChild(footerRow);
+
+  if(list.length){
+    const pager = makeCharPager(viewport, track, dotsWrap, list.length);
+    charsPagerInstance = pager;
+    charsPagerList = list;
+    if(list.length>1 || teams.length){
+      footerRow.appendChild(buildCharFilterSheet(p, list, pager));
+    }
+  } else {
+    charsPagerInstance = null;
+    charsPagerList = [];
     const empty=document.createElement('div'); empty.className='empty-hint'; empty.style.marginTop='10px';
-    empty.textContent='لا توجد شخصيات بعد.';
+    empty.textContent='لا توجد شخصيات في هذا الفريق.';
     mainContent.appendChild(empty);
   }
 
@@ -1954,13 +2138,14 @@ function renderCharsPage(p){
     addPanel.appendChild(buildCharForm(p, null, ()=> renderCharsPage(p)));
     mainContent.appendChild(addPanel);
 
-    mainContent.appendChild(buildPageManagePanel(p, 'إضافة صفحة فرعية'));
+    mainContent.appendChild(buildTeamsAdminPanel(p, ()=>renderCharsPage(p)));
     mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderCharsPage(p)));
   }
 
   const endLinkCard = renderEndLinkSection(p);
   if(endLinkCard) mainContent.appendChild(endLinkCard);
 }
+
 
 /* ══════════════════════════════════════════════════════════
    نوع صفحة "اللعبة": شرح اللعبة على شكل أقسام مرتّبة، كل قسم
