@@ -53,7 +53,8 @@ const ICONS = {
   grip: '<svg viewBox="0 0 24 24" width="14" height="14"><circle cx="9" cy="6" r="1.5" fill="currentColor"/><circle cx="15" cy="6" r="1.5" fill="currentColor"/><circle cx="9" cy="12" r="1.5" fill="currentColor"/><circle cx="15" cy="12" r="1.5" fill="currentColor"/><circle cx="9" cy="18" r="1.5" fill="currentColor"/><circle cx="15" cy="18" r="1.5" fill="currentColor"/></svg>',
   team: '<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="8.5" r="2.3" fill="none" stroke="currentColor" stroke-width="2" opacity=".7"/><path d="M16 13.5c2.3.3 3.8 2 3.8 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".7"/></svg>',
   gamepad: '<svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="8" width="18" height="9.5" rx="4.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7.2" y1="11.5" x2="7.2" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5.4" y1="13.25" x2="9" y2="13.25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="12.2" r="1" fill="currentColor"/><circle cx="17.3" cy="14.4" r="1" fill="currentColor"/></svg>',
-  arrowEnd: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+  arrowEnd: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/></svg>'
 };
 
 const STORAGE_KEY = 'offline_site_data_v6';
@@ -64,8 +65,21 @@ function defaultData(){
     pages:[
       {id:'home', title:'الرئيسية', fixed:true, type:'hub', content:'', children:[]}
     ],
-    activePage:'home'
+    activePage:'home',
+    /* لغة/اتجاه الموقع الافتراضيان إنجليزي (LTR)؛ يمكن للمؤسس تغييرهما من
+       زر الكرة الأرضية في القائمة العلوية، وستتكيف الصفحة بالكامل تلقائيًا
+       (الخطوط والترتيب) عبر خصائص CSS المنطقية بدل خصائص يمين/يسار الثابتة. */
+    siteLang:'en'
   };
+}
+
+/* اللغات التي تُكتب من اليمين لليسار — أي لغة أخرى تُعامل كـ LTR افتراضيًا. */
+const RTL_LANGS = ['ar','he','fa','ur'];
+function applySiteDirection(){
+  const lang = (state.siteLang || 'en').trim().toLowerCase();
+  const dir = RTL_LANGS.includes(lang) ? 'rtl' : 'ltr';
+  document.documentElement.lang = lang || 'en';
+  document.documentElement.dir = dir;
 }
 
 async function callApi(action, payload){
@@ -126,7 +140,7 @@ function save(statusHandle){
   saveLocal();
   if(supaEnabled && isAdminAuthed){
     if(statusHandle) statusHandle.saving();
-    callApi('saveSiteData', { pages: state.pages, footerText: state.footerText })
+    callApi('saveSiteData', { pages: state.pages, footerText: state.footerText, siteLang: state.siteLang })
       .then(({error})=>{
         if(error){
           console.error('Supabase save error:', error.message);
@@ -142,7 +156,9 @@ function save(statusHandle){
 
 let pendingQaNumber = null;
 let state = loadLocal();
+if(!state.siteLang) state.siteLang = 'en';
 applyUrlToState();
+applySiteDirection();
 
 async function syncFromSupabase(){
   if(!supaEnabled) return;
@@ -154,7 +170,9 @@ async function syncFromSupabase(){
   if(data && data.data){
     if(data.data.pages) state.pages = data.data.pages;
     if(data.data.footerText!==undefined) state.footerText = data.data.footerText;
+    if(data.data.siteLang) state.siteLang = data.data.siteLang;
     applyUrlToState();
+    applySiteDirection();
     saveLocal();
     renderAll();
   }
@@ -168,6 +186,8 @@ if(supaEnabled){
       if(payload.new && payload.new.data){
         if(payload.new.data.pages) state.pages = payload.new.data.pages;
         if(payload.new.data.footerText!==undefined) state.footerText = payload.new.data.footerText;
+        if(payload.new.data.siteLang) state.siteLang = payload.new.data.siteLang;
+        applySiteDirection();
         saveLocal();
         renderAll();
       }
@@ -202,9 +222,11 @@ function updateAuthBtn(){
 function updateAdminUi(){
   const saveBtnEl = document.getElementById('saveBtn');
   const inboxBtnEl = document.getElementById('inboxBtn');
+  const langBtnEl = document.getElementById('langBtn');
   const editToolbarEl = document.getElementById('editToolbar');
   if(saveBtnEl) saveBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
   if(inboxBtnEl) inboxBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
+  if(langBtnEl) langBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
   if(editToolbarEl) editToolbarEl.classList.toggle('show', isAdminAuthed);
   updatePublishIndicator();
 }
@@ -1399,9 +1421,8 @@ function renderContentPage(p){
     panel.appendChild(row);
     mainContent.appendChild(panel);
 
-    const endLinkCard = renderEndLinkSection(p);
-    if(endLinkCard) mainContent.appendChild(endLinkCard);
-    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderContentPage(p)));
+    renderEndLinksSection(p);
+    mainContent.appendChild(buildEndLinksAdminPanel(p, ()=>renderContentPage(p)));
   } else {
     const box=document.createElement('div');
     box.className='content-box';
@@ -1412,8 +1433,7 @@ function renderContentPage(p){
     }
     mainContent.appendChild(box);
 
-    const endLinkCard = renderEndLinkSection(p);
-    if(endLinkCard) mainContent.appendChild(endLinkCard);
+    renderEndLinksSection(p);
   }
 }
 
@@ -1582,51 +1602,84 @@ function buildPageManagePanel(p, addLabel){
 }
 
 /* ═══ قسم نهاية الصفحة: رابط ينقل الزائر لصفحة أخرى ═══ */
-function renderEndLinkSection(p){
-  const link = p.endLink;
-  if(!link || !link.targetId) return null;
-  const target = findPage(link.targetId);
-  if(!target) return null;
-  const wrap=document.createElement('div'); wrap.className='end-link-wrap';
-  const card=document.createElement('a');
-  card.href='#'; card.className='end-link-card';
-  card.innerHTML = `<span class="end-link-title"></span><span class="enter-arrow"></span>`;
-  card.querySelector('.end-link-title').textContent = target.title;
-  card.querySelector('.enter-arrow').innerHTML = ICONS.arrowEnd;
-  card.onclick=(e)=>{ e.preventDefault(); state.activePage=target.id; save(); renderAll(); window.scrollTo({top:0, behavior:'smooth'}); };
-  wrap.appendChild(card);
-  return wrap;
+/* ═══ أقسام نهاية الصفحة: يمكن إدراج أكثر من رابط واحد ينقل الزائر
+   لصفحات أخرى داخل الموقع، وتُعرض كل الروابط بالترتيب الذي أُضيفت به ═══ */
+function ensureEndLinks(p){
+  if(!p.endLinks){
+    p.endLinks = (p.endLink && p.endLink.targetId) ? [{ id:uid(), targetId:p.endLink.targetId }] : [];
+    delete p.endLink;
+  }
+  return p.endLinks;
 }
 
-function buildEndLinkAdminPanel(p, rerender){
+function renderEndLinksSection(p){
+  const links = ensureEndLinks(p).filter(l=> l.targetId && findPage(l.targetId));
+  if(!links.length) return;
+  const wrap=document.createElement('div'); wrap.className='end-link-wrap';
+  links.forEach(link=>{
+    const target=findPage(link.targetId);
+    const card=document.createElement('a');
+    card.href='#'; card.className='end-link-card';
+    card.innerHTML = `<span class="end-link-title"></span><span class="enter-arrow"></span>`;
+    card.querySelector('.end-link-title').textContent = target.title;
+    card.querySelector('.enter-arrow').innerHTML = ICONS.arrowEnd;
+    card.onclick=(e)=>{ e.preventDefault(); state.activePage=target.id; save(); renderAll(); window.scrollTo({top:0, behavior:'smooth'}); };
+    wrap.appendChild(card);
+  });
+  mainContent.appendChild(wrap);
+}
+
+function buildEndLinksAdminPanel(p, rerender){
+  const links = ensureEndLinks(p);
   const panel=document.createElement('div'); panel.className='admin-panel';
-  panel.innerHTML='<div class="label">قسم نهاية الصفحة (رابط ينقل الزائر لصفحة أخرى)</div>';
+  panel.innerHTML='<div class="label">أقسام نهاية الصفحة (روابط تنقل الزائر لصفحات أخرى)</div>';
+
+  if(links.length){
+    const list=document.createElement('div'); list.className='teams-list';
+    links.forEach(link=>{
+      const target=findPage(link.targetId);
+      const chip=document.createElement('span'); chip.className='team-chip-admin';
+      const nameSpan=document.createElement('span'); nameSpan.textContent = target ? target.title : '(صفحة محذوفة)';
+      chip.appendChild(nameSpan);
+      const rm=iconBtn('close','حذف الرابط','mini-btn');
+      rm.onclick=()=>{
+        const idx=links.indexOf(link);
+        if(idx>-1) links.splice(idx,1);
+        save();
+        showToast('✓ تم حذف الرابط');
+        rerender();
+      };
+      chip.appendChild(rm);
+      list.appendChild(chip);
+    });
+    panel.appendChild(list);
+  }
 
   const form=document.createElement('div'); form.className='qa-form';
   const select=document.createElement('select');
   select.className='admin-select';
-  select.innerHTML='<option value="">-- بدون قسم نهاية (إخفاء) --</option>';
+  select.innerHTML='<option value="">-- اختر صفحة لإضافة رابط إليها --</option>';
   allPagesFlat().forEach(item=>{
     if(item.id===p.id) return;
     const opt=document.createElement('option');
     opt.value=item.id;
     opt.textContent='—'.repeat(item.depth)+' '+item.title;
-    if(p.endLink && p.endLink.targetId===item.id) opt.selected=true;
     select.appendChild(opt);
   });
   form.appendChild(select);
   panel.appendChild(form);
 
   const actions=document.createElement('div'); actions.className='qa-edit-actions';
-  const saveBtn=document.createElement('button'); saveBtn.className='text-btn primary'; saveBtn.textContent='حفظ';
-  saveBtn.onclick=()=>{
-    if(select.value) p.endLink = { targetId: select.value };
-    else delete p.endLink;
+  const addBtn=document.createElement('button'); addBtn.className='text-btn primary'; addBtn.textContent='إضافة الرابط';
+  addBtn.onclick=()=>{
+    if(!select.value) return;
+    if(links.some(l=> l.targetId===select.value)){ showToast('هذا الرابط مضاف مسبقًا'); return; }
+    links.push({ id:uid(), targetId:select.value });
     save();
-    showToast('✓ تم حفظ قسم نهاية الصفحة');
+    showToast('✓ تمت إضافة الرابط');
     rerender();
   };
-  actions.appendChild(saveBtn);
+  actions.appendChild(addBtn);
   panel.appendChild(actions);
   return panel;
 }
@@ -1648,13 +1701,12 @@ function renderQuestionsPage(p){
     mainContent.appendChild(empty);
   }
 
-  const endLinkCard = renderEndLinkSection(p);
-  if(endLinkCard) mainContent.appendChild(endLinkCard);
+  renderEndLinksSection(p);
 
   if(state.admin){
     mainContent.appendChild(buildQaAddForm(p));
     mainContent.appendChild(buildPageManagePanel(p));
-    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderQuestionsPage(p)));
+    mainContent.appendChild(buildEndLinksAdminPanel(p, ()=>renderQuestionsPage(p)));
   }
 }
 
@@ -1721,11 +1773,10 @@ function renderHubPage(p){
   mainContent.appendChild(grid);
 
   if(state.admin){
-    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderHubPage(p)));
+    mainContent.appendChild(buildEndLinksAdminPanel(p, ()=>renderHubPage(p)));
   }
 
-  const endLinkCard = renderEndLinkSection(p);
-  if(endLinkCard) mainContent.appendChild(endLinkCard);
+  renderEndLinksSection(p);
 }
 
 /* ══════════════════════════════════════════════════════════
@@ -2049,12 +2100,14 @@ function makeCharPager(viewport, track, dotsWrap, count){
 
 /* ─── لوحة سفلية: تصفية حسب الفريق أو القفز مباشرة لاسم شخصية،
    بنفس فكرة زر الفرق في الملف الأصلي. ─── */
-function buildCharFilterSheet(p, list, pager){
+/* ─── القائمة المنسدلة: تفتح تحت زر "تصفّح الشخصيات" مباشرة (لا كورقة
+   سفلية بعد الآن)، بحواف حادة، مع تظليل خلفي يمنع أي تفاعل خلفها. ─── */
+function buildCharFilterMenu(p, list, pager){
   const teams = ensureCharTeams(p).filter(t=> list.some(ch=> ch.stats && ch.stats.team===t));
-  const sheetWrap=document.createElement('div'); sheetWrap.className='char-filter-wrap';
+  const wrap=document.createElement('div'); wrap.className='char-filter-wrap';
 
   const btn=document.createElement('button'); btn.className='char-filter-btn'; btn.type='button';
-  btn.innerHTML = ICONS.chevron + '<span>تصفح الشخصيات</span>';
+  btn.innerHTML = '<span>تصفّح الشخصيات</span>' + ICONS.chevron;
   const backdrop=document.createElement('div'); backdrop.className='char-filter-backdrop';
   const sheet=document.createElement('div'); sheet.className='char-filter-sheet';
 
@@ -2075,20 +2128,20 @@ function buildCharFilterSheet(p, list, pager){
   list.forEach((ch,i)=>{
     const nameBtn=document.createElement('button'); nameBtn.className='char-filter-name';
     nameBtn.textContent = ch.name || 'بدون اسم';
-    nameBtn.onclick=()=>{ pager.goTo(i); closeSheet(); };
+    nameBtn.onclick=()=>{ pager.goTo(i); closeMenu(); };
     namesList.appendChild(nameBtn);
   });
   sheet.appendChild(namesList);
 
-  function openSheet(){ sheet.classList.add('open'); backdrop.classList.add('open'); }
-  function closeSheet(){ sheet.classList.remove('open'); backdrop.classList.remove('open'); }
-  btn.onclick=()=> sheet.classList.contains('open') ? closeSheet() : openSheet();
-  backdrop.onclick=closeSheet;
+  function openMenu(){ sheet.classList.add('open'); backdrop.classList.add('open'); btn.classList.add('open'); }
+  function closeMenu(){ sheet.classList.remove('open'); backdrop.classList.remove('open'); btn.classList.remove('open'); }
+  btn.onclick=()=> sheet.classList.contains('open') ? closeMenu() : openMenu();
+  backdrop.onclick=closeMenu;
 
-  sheetWrap.appendChild(btn);
-  sheetWrap.appendChild(backdrop);
-  sheetWrap.appendChild(sheet);
-  return sheetWrap;
+  wrap.appendChild(btn);
+  wrap.appendChild(backdrop);
+  wrap.appendChild(sheet);
+  return wrap;
 }
 
 function renderCharsPage(p){
@@ -2104,6 +2157,14 @@ function renderCharsPage(p){
     ? all
     : all.filter(ch=> ch.stats && ch.stats.team===activeTeam);
 
+  /* شريط علوي: زر تصفّح الشخصيات في أعلى الصفحة قبل الشرائح مباشرة */
+  if(list.length && (list.length>1 || teams.length)){
+    const topbar=document.createElement('div'); topbar.className='chars-topbar';
+    mainContent.appendChild(topbar);
+    /* الزر الفعلي يُبنى بعد إنشاء الـ pager (يحتاج مرجعه)، فنملأ الحاوية لاحقًا */
+    topbar.dataset.placeholder='1';
+  }
+
   const carouselOuter=document.createElement('div'); carouselOuter.className='char-carousel-outer';
   const viewport=document.createElement('div'); viewport.className='char-carousel-viewport';
   const track=document.createElement('div'); track.className='char-carousel-track';
@@ -2112,18 +2173,17 @@ function renderCharsPage(p){
   carouselOuter.appendChild(viewport);
   mainContent.appendChild(carouselOuter);
 
-  const footerRow=document.createElement('div'); footerRow.className='char-carousel-footer';
+  const dotsFooter=document.createElement('div'); dotsFooter.className='char-dots-footer';
   const dotsWrap=document.createElement('div'); dotsWrap.className='char-dots';
-  footerRow.appendChild(dotsWrap);
-  mainContent.appendChild(footerRow);
+  dotsFooter.appendChild(dotsWrap);
+  if(list.length>1) mainContent.appendChild(dotsFooter);
 
   if(list.length){
     const pager = makeCharPager(viewport, track, dotsWrap, list.length);
     charsPagerInstance = pager;
     charsPagerList = list;
-    if(list.length>1 || teams.length){
-      footerRow.appendChild(buildCharFilterSheet(p, list, pager));
-    }
+    const topbar = mainContent.querySelector('.chars-topbar');
+    if(topbar) topbar.appendChild(buildCharFilterMenu(p, list, pager));
   } else {
     charsPagerInstance = null;
     charsPagerList = [];
@@ -2139,11 +2199,10 @@ function renderCharsPage(p){
     mainContent.appendChild(addPanel);
 
     mainContent.appendChild(buildTeamsAdminPanel(p, ()=>renderCharsPage(p)));
-    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderCharsPage(p)));
+    mainContent.appendChild(buildEndLinksAdminPanel(p, ()=>renderCharsPage(p)));
   }
 
-  const endLinkCard = renderEndLinkSection(p);
-  if(endLinkCard) mainContent.appendChild(endLinkCard);
+  renderEndLinksSection(p);
 }
 
 
@@ -2153,7 +2212,14 @@ function renderCharsPage(p){
    ══════════════════════════════════════════════════════════ */
 function buildGameSection(p, sec, i, list){
   const box=document.createElement('div'); box.className='game-section';
+  box.id='game-sec-'+sec.id;
   box.dataset.secId=sec.id;
+
+  const num=document.createElement('div'); num.className='game-sec-num';
+  num.textContent = String(i+1).padStart(2,'0');
+  box.appendChild(num);
+
+  const main=document.createElement('div'); main.className='game-sec-main';
 
   const head=document.createElement('div'); head.className='game-sec-head';
   const titleEl=document.createElement('h2'); titleEl.className='game-sec-title'; titleEl.textContent=sec.title||'';
@@ -2185,17 +2251,18 @@ function buildGameSection(p, sec, i, list){
     actions.appendChild(del);
     head.appendChild(actions);
   }
-  box.appendChild(head);
+  main.appendChild(head);
 
   const body=document.createElement('div'); body.className='game-sec-body content-box';
   body.innerHTML = sanitizeHtml(sec.body || '');
-  box.appendChild(body);
+  main.appendChild(body);
 
+  box.appendChild(main);
   return box;
 }
 
 function renderGameSectionEditForm(p, sec, boxEl){
-  const wrap=document.createElement('div'); wrap.className='game-section game-sec-editing';
+  const wrap=document.createElement('div'); wrap.className='game-sec-editing';
 
   const titleInput=document.createElement('input');
   titleInput.className='game-sec-title-input';
@@ -2268,22 +2335,37 @@ function renderGamePage(p){
   mainContent.innerHTML = html;
 
   const list = p.sections || [];
+
+  if(list.length>1){
+    const toc=document.createElement('div'); toc.className='game-toc';
+    list.forEach((sec,i)=>{
+      const item=document.createElement('button'); item.className='game-toc-item'; item.type='button';
+      item.innerHTML = `<span class="game-toc-num">${i+1}</span><span></span>`;
+      item.querySelector('span:last-child').textContent = sec.title || '';
+      item.onclick=()=>{
+        const el=document.getElementById('game-sec-'+sec.id);
+        if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+      };
+      toc.appendChild(item);
+    });
+    mainContent.appendChild(toc);
+  }
+
   list.forEach((sec,i)=> mainContent.appendChild(buildGameSection(p, sec, i, list)));
 
   if(!list.length){
-    const empty=document.createElement('div'); empty.className='empty-hint'; empty.style.marginTop='10px';
-    empty.textContent='لا توجد أقسام شرح بعد.';
+    const empty=document.createElement('div'); empty.className='game-empty-hero';
+    empty.innerHTML = ICONS.gamepad + '<span>لا توجد أقسام شرح بعد.</span>';
     mainContent.appendChild(empty);
   }
 
   if(state.admin){
     mainContent.appendChild(buildGameSectionAddForm(p));
     mainContent.appendChild(buildPageManagePanel(p, 'إضافة صفحة فرعية'));
-    mainContent.appendChild(buildEndLinkAdminPanel(p, ()=>renderGamePage(p)));
+    mainContent.appendChild(buildEndLinksAdminPanel(p, ()=>renderGamePage(p)));
   }
 
-  const endLinkCard = renderEndLinkSection(p);
-  if(endLinkCard) mainContent.appendChild(endLinkCard);
+  renderEndLinksSection(p);
 }
 
 function renderMain(){
@@ -2336,6 +2418,7 @@ document.getElementById('askCancel').innerHTML = ICONS.close;
 document.getElementById('searchCancel').innerHTML = ICONS.close;
 document.getElementById('saveBtn').innerHTML = ICONS.publish;
 document.getElementById('inboxBtn').innerHTML = ICONS.inbox;
+document.getElementById('langBtn').innerHTML = ICONS.globe;
 initGlobalEditToolbar();
 
 document.addEventListener('keydown', (e)=>{
@@ -2354,6 +2437,21 @@ document.getElementById('saveBtn').onclick=()=>{
   showToast(hadChanges ? '✓ تم نشر التغييرات' : '✓ لا تغييرات جديدة، لكن تم التأكيد');
 };
 document.getElementById('inboxBtn').onclick=()=> openInbox();
+
+/* لغة/اتجاه الموقع: يُدخل المؤسس رمز اللغة (en, ar, fr...)، وتتكيف
+   الصفحة بالكامل (الاتجاه والخطوط) تلقائيًا عبر applySiteDirection(). */
+document.getElementById('langBtn').onclick=()=>{
+  const current = state.siteLang || 'en';
+  const input = prompt('رمز لغة الموقع (مثال: en للإنجليزية، ar للعربية، fr للفرنسية...):', current);
+  if(input===null) return;
+  const v = input.trim().toLowerCase();
+  if(!v) return;
+  state.siteLang = v;
+  applySiteDirection();
+  save();
+  showToast('✓ تم تغيير لغة الموقع إلى: ' + v);
+  renderAll();
+};
 
 /* ---------------- بوابة دخول المؤسس (رابط سري ?admin=1) ---------------- */
 const lockScreenEl=document.getElementById('lockScreen');

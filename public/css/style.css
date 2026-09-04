@@ -12,17 +12,22 @@
     --radius-md:14px;
     --radius-sm:10px;
     --shadow-card:0 8px 28px rgba(0,0,0,.35);
+    /* اللغة الافتراضية للموقع إنجليزية، لذا Inter هو الخط الأساسي؛ أي حرف
+       عربي داخل النص سيسقط تلقائيًا (font fallback) على Tajawal/Cairo دون
+       أي منطق إضافي مطلوب — نفس الفكرة تنطبق على أي لغة أخرى لاحقًا. */
+    --font-main: 'Inter', 'Tajawal', sans-serif;
+    --font-heading: 'Inter', 'Cairo', sans-serif;
   }
   *{box-sizing:border-box;}
   html,body{margin:0;padding:0;}
   body{
     background:var(--bg);
     color:var(--text);
-    font-family:'Tajawal', sans-serif;
+    font-family:var(--font-main);
     min-height:100vh;
     overflow-x:hidden;
   }
-  h1,h2,h3,.brand,.page-title{font-family:'Cairo', sans-serif;}
+  h1,h2,h3,.brand,.page-title{font-family:var(--font-heading);}
   svg{display:block;}
 
   .topbar{
@@ -57,7 +62,7 @@
   .topbar-icon-btn:active{transform:scale(.9);}
   .publish-badge{
     display:inline-flex;align-items:center;gap:5px;font-size:11.5px;
-    padding:5px 10px;border-radius:20px;white-space:nowrap;font-family:'Tajawal';
+    padding:5px 10px;border-radius:20px;white-space:nowrap;font-family:var(--font-main);
     transition:.2s;
   }
   .publish-badge.dirty{background:rgba(234,179,8,.15);color:#eab308;}
@@ -76,7 +81,7 @@
   .fullpage-body{flex:1;overflow-y:auto;padding:24px 20px 60px;max-width:640px;margin:0 auto;width:100%;box-sizing:border-box;}
   .fullpage-input{
     width:100%;padding:12px 18px;background:var(--bg-panel);border:1.5px solid var(--line);
-    color:var(--text);border-radius:var(--radius-lg);font-family:'Tajawal';font-size:14px;transition:.15s;box-sizing:border-box;
+    color:var(--text);border-radius:var(--radius-lg);font-family:var(--font-main);font-size:14px;transition:.15s;box-sizing:border-box;
   }
   .fullpage-input:focus{outline:none;border-color:var(--accent);}
   .search-result{
@@ -202,7 +207,7 @@
   .edit-toolbar .sep{width:1px;height:24px;background:var(--line);margin:0 4px;flex-shrink:0;}
   .block-format-select, .font-family-select, .font-size-select{
     background:none;border:none;color:var(--text-dim);
-    border-radius:0;padding:8px 4px;font-family:'Tajawal';font-size:13px;
+    border-radius:0;padding:8px 4px;font-family:var(--font-main);font-size:13px;
     cursor:pointer;flex-shrink:0;max-width:120px;
   }
   .block-format-select:hover, .font-family-select:hover, .font-size-select:hover{color:var(--text);}
@@ -232,7 +237,7 @@
     width:100%;border-collapse:collapse;margin:14px 0;
   }
   .content-table td{
-    border:1px solid var(--line);padding:9px 12px;text-align:right;vertical-align:top;
+    border:1px solid var(--line);padding:9px 12px;text-align:start;vertical-align:top;
     min-width:40px;
   }
   .content-table tr:nth-child(even){background:rgba(255,255,255,.03);}
@@ -241,7 +246,7 @@
   .content-table td .media-block.in-table{width:120px;max-width:100%;margin:4px 0;}
   .content-table td .media-block.in-table img,
   .content-table td .media-block.in-table video{width:100%;height:auto;border-radius:8px;}
-  .content-table td .media-block.in-table .media-controls{top:4px;left:4px;}
+  .content-table td .media-block.in-table .media-controls{top:4px;inset-inline-start:4px;}
   .content-table td .media-block.in-table .mctrl{width:24px;height:24px;}
 
   /* وضع الكتابة بدون إلهاء */
@@ -272,7 +277,7 @@
     position:fixed;bottom:24px;inset-inline:0;margin:0 auto;width:fit-content;
     display:flex;align-items:center;gap:8px;
     background:var(--accent);color:#0a0a0d;border:none;
-    padding:12px 20px;border-radius:30px;font-family:'Tajawal';font-size:14px;font-weight:700;
+    padding:12px 20px;border-radius:30px;font-family:var(--font-main);font-size:14px;font-weight:700;
     cursor:pointer;z-index:60;box-shadow:0 8px 30px rgba(0,0,0,.4);
   }
   .preview-exit-btn:active{transform:scale(.96);}
@@ -281,7 +286,7 @@
   .media-block img, .media-block video{width:100%;display:block;border-radius:var(--radius-sm);}
   .media-block iframe{width:100%;height:360px;display:block;border-radius:var(--radius-sm);border:none;}
   .media-controls{
-    position:absolute;top:8px;left:8px;display:flex;gap:6px;
+    position:absolute;top:8px;inset-inline-start:8px;display:flex;gap:6px;
     opacity:0;transition:opacity .15s;
   }
   .media-block:hover .media-controls{opacity:1;}
@@ -311,7 +316,7 @@
   .admin-panel button:active{opacity:.7;}
   .admin-panel button.danger:hover{color:var(--danger);}
   .admin-panel button.labeled-btn{
-    width:auto;height:auto;padding:4px 0;gap:8px;font-family:'Tajawal';font-size:13px;
+    width:auto;height:auto;padding:4px 0;gap:8px;font-family:var(--font-main);font-size:13px;
   }
   .admin-panel button.labeled-btn:hover{text-decoration:underline;text-underline-offset:3px;}
   .admin-panel button.labeled-btn svg{flex-shrink:0;width:16px;height:16px;}
@@ -333,13 +338,13 @@
   .qa-form{margin-top:8px;}
   .qa-form input, .qa-form textarea{
     width:100%;padding:11px 16px;margin-bottom:8px;background:var(--bg-panel);border:1.5px solid var(--line);
-    color:var(--text);border-radius:var(--radius-lg);font-family:'Tajawal';transition:.15s;
+    color:var(--text);border-radius:var(--radius-lg);font-family:var(--font-main);transition:.15s;
   }
   .qa-form input:focus, .qa-form textarea:focus{outline:none;border-color:var(--accent);}
   .qa-edit-actions{display:flex;gap:8px;margin-top:10px;}
   .text-btn{
     padding:9px 6px;border-radius:var(--radius-sm);border:none;background:none;
-    color:var(--text-dim);cursor:pointer;font-family:'Tajawal';font-size:13px;transition:.15s;
+    color:var(--text-dim);cursor:pointer;font-family:var(--font-main);font-size:13px;transition:.15s;
   }
   .text-btn:hover{color:var(--text);text-decoration:underline;text-underline-offset:3px;}
   .text-btn:active{opacity:.7;}
@@ -357,7 +362,8 @@
   .hub-card:active{background:rgba(255,255,255,.06);transform:scale(.99);}
   .hub-card:last-child{border-bottom:none;}
   .hub-card-title{font-size:15.5px;font-weight:700;}
-  .enter-arrow{transform:scaleX(-1);color:var(--text-dim);transition:.15s;}
+  .enter-arrow{color:var(--text-dim);transition:.15s;}
+  [dir="rtl"] .enter-arrow{transform:scaleX(-1);}
   .hub-card:hover .enter-arrow{color:var(--accent);}
 
   .modal-bg{position:fixed;inset:0;background:rgba(6,7,10,.7);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:60;}
@@ -369,18 +375,18 @@
   .modal h4{margin:0 0 14px;color:var(--text);font-weight:700;}
   .modal input, .modal select, .modal textarea{
     width:100%;padding:11px 16px;margin-bottom:12px;background:var(--bg-panel);border:1.5px solid var(--line);
-    color:var(--text);border-radius:var(--radius-lg);font-family:'Tajawal';font-size:14px;transition:.15s;
+    color:var(--text);border-radius:var(--radius-lg);font-family:var(--font-main);font-size:14px;transition:.15s;
   }
   .modal input:focus, .modal select:focus, .modal textarea:focus{outline:none;border-color:var(--accent);}
   .type-select{display:flex;gap:16px 18px;margin-bottom:12px;justify-content:center;flex-wrap:wrap;}
   .modal select.admin-select, select.admin-select{
     width:100%;padding:11px 16px;margin-bottom:12px;background:var(--bg-panel);border:1.5px solid var(--line);
-    color:var(--text);border-radius:var(--radius-lg);font-family:'Tajawal';font-size:14px;transition:.15s;
+    color:var(--text);border-radius:var(--radius-lg);font-family:var(--font-main);font-size:14px;transition:.15s;
   }
   select.admin-select:focus{outline:none;border-color:var(--accent);}
   .type-opt{
     flex:0 0 auto;padding:6px 2px;border:none;border-bottom:2px solid transparent;background:none;color:var(--text-dim);
-    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-family:'Tajawal';transition:.15s;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;gap:6px;font-size:13px;font-family:var(--font-main);transition:.15s;
   }
   .type-opt.active{border-color:var(--accent);color:var(--accent);}
   .modal-actions{display:flex;gap:14px;justify-content:flex-end;}
@@ -418,7 +424,7 @@
     padding:40px 0;display:flex;flex-direction:column;gap:0;
   }
   .auth-head{padding:0 20px 24px;}
-  .auth-title{font-size:1.55rem;font-weight:900;letter-spacing:-.3px;color:#fff;font-family:'Cairo',sans-serif;}
+  .auth-title{font-size:1.55rem;font-weight:900;letter-spacing:-.3px;color:#fff;font-family:var(--font-heading);}
   .auth-sub{font-size:.86rem;color:rgba(255,255,255,.45);margin-top:5px;line-height:1.65;}
   .auth-sub b{color:rgba(255,255,255,.85);}
   .steps{display:flex;gap:6px;padding:0 20px 22px;}
@@ -429,13 +435,13 @@
   .field-row{display:flex;align-items:center;margin:0 20px;border-bottom:1px solid rgba(255,255,255,.12);}
   .fi{
     flex:1;background:transparent;border:none;padding:17px 0;color:#fff;
-    font-family:'Tajawal',sans-serif;font-size:1rem;outline:none;
-    direction:ltr;text-align:right;min-width:0;width:100%;
+    font-family:var(--font-main);font-size:1rem;outline:none;
+    direction:ltr;text-align:start;min-width:0;width:100%;
   }
   .fi::placeholder{color:rgba(255,255,255,.28);direction:rtl;}
   .otp-fi{
     display:block;width:100%;background:transparent;border:none;
-    padding:22px 20px;color:#fff;outline:none;font-family:'Tajawal',sans-serif;
+    padding:22px 20px;color:#fff;outline:none;font-family:var(--font-main);
     font-size:2.4rem;font-weight:700;letter-spacing:16px;text-align:center;direction:ltr;
     box-sizing:border-box;
   }
@@ -445,7 +451,7 @@
   .vm-row.err{color:#ff5252;}
   .btn-main{
     width:calc(100% - 40px);margin:24px 20px 0;padding:16px 20px;border:none;
-    background:var(--lock-accent);color:#fff;font-family:'Tajawal',sans-serif;
+    background:var(--lock-accent);color:#fff;font-family:var(--font-main);
     font-size:1rem;font-weight:700;cursor:pointer;
     display:flex;align-items:center;justify-content:center;gap:8px;
     border-radius:14px;transition:opacity .18s, transform .1s;
@@ -453,7 +459,7 @@
   .btn-main:disabled{opacity:.35;cursor:not-allowed;}
   .btn-main:not(:disabled):active{opacity:.85;transform:scale(.99);}
   .links-row{display:flex;align-items:center;justify-content:space-between;padding:16px 20px 0;font-size:.83rem;color:rgba(255,255,255,.38);}
-  .lnk{background:none;border:none;color:var(--lock-accent);font-family:'Tajawal',sans-serif;font-size:.83rem;cursor:pointer;padding:0;font-weight:600;}
+  .lnk{background:none;border:none;color:var(--lock-accent);font-family:var(--font-main);font-size:.83rem;cursor:pointer;padding:0;font-weight:600;}
   .lnk.dim{color:rgba(255,255,255,.38);font-weight:400;}
   .lnk.dim:hover{color:rgba(255,255,255,.65);}
   .resend-row{padding:16px 20px 0;font-size:.81rem;color:rgba(255,255,255,.35);text-align:center;}
@@ -469,31 +475,38 @@
   .end-link-card:hover{color:var(--accent-blue);background:rgba(255,255,255,.03);}
   .end-link-card:active{transform:scale(.99);}
   .end-link-title{font-size:15.5px;font-weight:700;}
-  .end-link-card .enter-arrow{transform:scaleX(-1);color:var(--text-dim);transition:.15s;flex-shrink:0;}
+  .end-link-card .enter-arrow{flex-shrink:0;}
   .end-link-card:hover .enter-arrow{color:var(--accent);}
 
-  /* ═══ نوع صفحة "الشخصيات": شرائح بملء الشاشة + سحب أفقي ═══ */
-  .char-carousel-outer{margin-top:6px;border-radius:var(--radius-lg);overflow:hidden;background:var(--bg-panel);border:1px solid var(--line);}
+  /* ═══ نوع صفحة "الشخصيات": شرائح بملء الشاشة + سحب أفقي، بلا أي صندوق
+     أو خلفية حول الشرائح — الشخصية نفسها تملأ عرض الصفحة مباشرة ═══ */
+  .char-carousel-outer{margin-top:2px;}
   .char-carousel-viewport{overflow:hidden;touch-action:pan-y;cursor:grab;direction:ltr;}
   .char-carousel-viewport:active{cursor:grabbing;}
   .char-carousel-track{display:flex;will-change:transform;}
   .char-slide{
     flex:0 0 100%;width:100%;box-sizing:border-box;
-    padding:22px 18px 20px;direction:rtl;position:relative;
+    padding:6px 2px 20px;position:relative;
   }
-  .char-name-top{text-align:center;font-size:1.1rem;font-weight:900;color:var(--text);font-family:'Cairo',sans-serif;padding-bottom:14px;}
+  /* الشريحة نفسها تتبع اتجاه المستند (يمين/يسار) حتى لو كان حاوي التمرير
+     الأفقي بالأعلى مثبّتًا دائمًا على LTR لأجل حساب السحب؛ هكذا يبقى ترتيب
+     الصورة/القصة متكيّفًا تلقائيًا مع لغة الصفحة دون أي كود إضافي. */
+  [dir="rtl"] .char-slide{direction:rtl;}
+  .char-name-top{text-align:center;font-size:1.15rem;font-weight:900;color:var(--text);font-family:var(--font-heading);padding-bottom:16px;}
   .char-name-en{font-size:.78rem;font-weight:500;color:var(--text-dim);direction:ltr;display:inline-block;}
-  .char-top-row{display:flex;align-items:stretch;gap:14px;min-height:220px;}
-  /* الصورة أولًا في الترتيب فتظهر في أقصى اليمين ضمن الاتجاه العربي للشريحة */
-  .char-portrait-wrap{flex:0 0 44%;max-width:44%;position:relative;}
+  .char-top-row{display:flex;align-items:stretch;gap:16px;min-height:46vh;}
+  /* الصورة أولًا في ترتيب الـ DOM، فتظهر تلقائيًا عند حافة "بداية" اتجاه
+     القراءة الحالي للصفحة (يمين في العربية، يسار في الإنجليزية...) بينما
+     تظهر القصة عند حافة "النهاية" — بلا أي كود مخصص لكل لغة. */
+  .char-portrait-wrap{flex:0 0 46%;max-width:46%;position:relative;}
   .char-portrait{
-    position:relative;width:100%;height:100%;min-height:220px;border-radius:var(--radius-md);
+    position:relative;width:100%;height:100%;min-height:46vh;border-radius:var(--radius-md);
     overflow:hidden;background:linear-gradient(155deg,var(--bg-soft),#0a0a10);
   }
   .char-portrait img{width:100%;height:100%;object-fit:cover;display:block;}
   .char-portrait.ph{display:flex;align-items:center;justify-content:center;}
   .char-portrait.ph::before{content:'';width:44px;height:44px;border-radius:50%;background:rgba(255,255,255,.08);}
-  .char-stats{position:absolute;top:10px;right:10px;z-index:2;display:flex;flex-direction:column;gap:4px;pointer-events:none;}
+  .char-stats{position:absolute;top:10px;inset-inline-start:10px;z-index:2;display:flex;flex-direction:column;gap:4px;pointer-events:none;}
   .char-stat-row{font-size:.68rem;line-height:1.4;text-shadow:0 1px 5px rgba(0,0,0,.85),0 0 12px rgba(0,0,0,.6);}
   .char-stat-label{color:var(--accent-blue);font-weight:800;}
   .char-stat-value{color:#fff;font-weight:600;}
@@ -519,39 +532,48 @@
   .char-img-preview img{width:100%;height:100%;object-fit:cover;display:block;}
 
   /* شريط أسفل الشرائح: نقاط + زر تصفح/تصفية */
-  .char-carousel-footer{display:flex;align-items:center;justify-content:center;gap:14px;padding:14px 4px 4px;position:relative;}
+  /* شريط علوي فوق الشرائح: زر "تصفّح الشخصيات" يفتح قائمة منسدلة تنزل من
+     تحته مباشرة بحواف حادة (بلا استدارة)، بدل الورقة السفلية السابقة. */
+  .chars-topbar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px;position:relative;}
+  .char-dots-footer{display:flex;justify-content:center;padding:14px 4px 4px;}
   .char-dots{display:flex;align-items:center;gap:7px;}
   .char-dot{width:6px;height:6px;border-radius:50%;background:var(--line);cursor:pointer;transition:.25s;}
   .char-dot.active{width:18px;border-radius:4px;background:var(--accent);}
   .char-filter-wrap{position:relative;}
   .char-filter-btn{
     display:flex;align-items:center;gap:6px;background:none;border:1px solid var(--line);color:var(--text-dim);
-    padding:7px 14px;border-radius:30px;font-family:'Tajawal';font-size:12.5px;cursor:pointer;transition:.15s;
+    padding:7px 14px;border-radius:var(--radius-sm);font-family:var(--font-main);font-size:12.5px;cursor:pointer;transition:.15s;
   }
   .char-filter-btn:hover{color:var(--text);border-color:var(--text-dim);}
-  .char-filter-btn svg{transform:rotate(180deg);width:11px;height:11px;}
+  .char-filter-btn.open{color:var(--text);border-color:var(--accent);}
+  .char-filter-btn svg{transition:transform .2s;width:11px;height:11px;}
+  .char-filter-btn.open svg{transform:rotate(180deg);}
+  /* التظليل خلف القائمة يمنع أي تفاعل مع بقية الصفحة أثناء فتحها */
   .char-filter-backdrop{
     position:fixed;inset:0;background:rgba(0,0,0,.55);opacity:0;pointer-events:none;transition:opacity .2s;z-index:65;
   }
   .char-filter-backdrop.open{opacity:1;pointer-events:auto;}
+  /* قائمة منسدلة تلتصق أسفل الزر مباشرة بحواف حادة تمامًا، لا ورقة سفلية */
   .char-filter-sheet{
-    position:fixed;left:0;right:0;bottom:0;z-index:66;max-height:60vh;overflow-y:auto;
-    background:var(--bg-soft);border-top:1px solid var(--line);border-radius:20px 20px 0 0;
-    padding:16px 18px 26px;transform:translateY(16px);opacity:0;pointer-events:none;
-    transition:transform .25s cubic-bezier(.22,.61,.36,1), opacity .2s ease;
+    position:absolute;top:calc(100% + 8px);inset-inline-end:0;z-index:66;
+    width:260px;max-width:min(86vw,320px);max-height:60vh;overflow-y:auto;
+    background:var(--bg-soft);border:1px solid var(--line);border-radius:0;
+    box-shadow:0 16px 40px rgba(0,0,0,.5);
+    padding:14px;transform:translateY(-6px);opacity:0;pointer-events:none;
+    transition:transform .18s cubic-bezier(.22,.61,.36,1), opacity .15s ease;
   }
   .char-filter-sheet.open{transform:translateY(0);opacity:1;pointer-events:auto;}
-  .char-filter-teams{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line);}
+  .char-filter-teams{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;padding-bottom:12px;border-bottom:1px solid var(--line);}
   .team-chip{
-    padding:7px 16px;border-radius:30px;border:1px solid var(--line);background:transparent;
-    color:var(--text-dim);font-family:'Tajawal';font-size:13px;cursor:pointer;transition:.15s;
+    padding:6px 14px;border-radius:0;border:1px solid var(--line);background:transparent;
+    color:var(--text-dim);font-family:var(--font-main);font-size:12.5px;cursor:pointer;transition:.15s;
   }
   .team-chip:hover{color:var(--text);border-color:var(--text-dim);}
   .team-chip.active{color:#0a0a0d;background:var(--accent);border-color:var(--accent);font-weight:700;}
   .char-filter-names{display:flex;flex-direction:column;}
   .char-filter-name{
-    background:none;border:none;border-top:1px solid var(--line);padding:12px 4px;
-    color:var(--text);font-family:'Tajawal';font-size:14px;text-align:right;cursor:pointer;transition:.15s;
+    background:none;border:none;border-top:1px solid var(--line);padding:11px 2px;
+    color:var(--text);font-family:var(--font-main);font-size:13.5px;text-align:start;cursor:pointer;transition:.15s;
   }
   .char-filter-names .char-filter-name:first-child{border-top:none;}
   .char-filter-name:hover{color:var(--accent-blue);}
@@ -559,25 +581,64 @@
   /* لوحة إدارة الفرق */
   .teams-list{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
   .team-chip-admin{
-    display:inline-flex;align-items:center;gap:4px;padding:5px 6px 5px 14px;border-radius:30px;
+    display:inline-flex;align-items:center;gap:4px;padding-block:5px;padding-inline:6px 14px;border-radius:30px;
     background:var(--bg-panel);border:1px solid var(--line);color:var(--text);font-size:13px;
   }
 
   @media (max-width:480px){
     .char-top-row{flex-direction:column;min-height:0;}
-    .char-portrait-wrap{max-width:100%;width:100%;height:220px;}
-    .char-portrait{min-height:220px;}
+    .char-portrait-wrap{max-width:100%;width:100%;height:38vh;}
+    .char-portrait{min-height:38vh;}
   }
 
-  /* ═══ نوع صفحة "اللعبة" ═══ */
-  .game-section{margin-bottom:26px;padding-bottom:22px;border-bottom:1px solid var(--line);}
-  .game-section:last-of-type{border-bottom:none;}
-  .game-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:10px;flex-wrap:wrap;}
-  .game-sec-title{font-size:19px;font-weight:800;margin:0;color:var(--accent-blue);}
+  /* ═══ نوع صفحة "اللعبة": شرح مقسّم لبطاقات مرقّمة مع فهرس علوي قابل
+     للتمرير يقفز مباشرة لأي قسم — بدل القائمة النصية البسيطة السابقة ═══ */
+  .game-toc{
+    display:flex;gap:8px;overflow-x:auto;padding-bottom:14px;margin-bottom:22px;
+    border-bottom:1px solid var(--line);scrollbar-width:thin;
+  }
+  .game-toc-item{
+    flex:0 0 auto;display:flex;align-items:center;gap:7px;
+    padding:7px 14px;border-radius:30px;border:1px solid var(--line);background:var(--bg-panel);
+    color:var(--text-dim);font-family:var(--font-main);font-size:12.5px;cursor:pointer;
+    white-space:nowrap;transition:.15s;
+  }
+  .game-toc-item:hover{color:var(--text);border-color:var(--text-dim);}
+  .game-toc-num{
+    display:flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;
+    background:var(--accent);color:#0a0a0d;font-size:10px;font-weight:800;flex-shrink:0;
+  }
+  .game-section{
+    display:flex;gap:16px;margin-bottom:18px;padding:20px;
+    background:var(--bg-panel);border:1px solid var(--line);border-radius:var(--radius-lg);
+    scroll-margin-top:80px;
+  }
+  .game-sec-num{
+    flex:0 0 40px;width:40px;height:40px;border-radius:50%;
+    background:rgba(45,212,191,.12);color:var(--accent);
+    display:flex;align-items:center;justify-content:center;
+    font-family:var(--font-heading);font-weight:800;font-size:15px;
+  }
+  .game-sec-main{flex:1;min-width:0;}
+  .game-sec-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:12px;flex-wrap:wrap;}
+  .game-sec-title{font-size:19px;font-weight:800;margin:0;color:var(--text);font-family:var(--font-heading);}
   .game-sec-body{min-height:auto;}
   .game-sec-title-input{
-    width:100%;padding:11px 16px;margin-bottom:10px;background:var(--bg-panel);border:1.5px solid var(--line);
-    color:var(--text);border-radius:var(--radius-lg);font-family:'Cairo';font-size:16px;font-weight:700;transition:.15s;
+    width:100%;padding:11px 16px;margin-bottom:10px;background:var(--bg-soft);border:1.5px solid var(--line);
+    color:var(--text);border-radius:var(--radius-lg);font-family:var(--font-heading);font-size:16px;font-weight:700;transition:.15s;
   }
   .game-sec-title-input:focus{outline:none;border-color:var(--accent);}
-  .game-sec-editing{border:1px dashed var(--line);border-radius:var(--radius-md);padding:14px;}
+  .game-sec-editing{
+    display:block;border:1px dashed var(--line);border-radius:var(--radius-md);
+    padding:14px;background:var(--bg-panel);
+  }
+  .game-empty-hero{
+    display:flex;flex-direction:column;align-items:center;gap:10px;text-align:center;
+    padding:50px 20px;color:var(--text-dim);border:1px dashed var(--line);border-radius:var(--radius-lg);
+  }
+  .game-empty-hero svg{width:34px;height:34px;opacity:.5;}
+
+  @media (max-width:480px){
+    .game-section{flex-direction:column;padding:16px;}
+    .game-sec-num{width:32px;height:32px;font-size:13px;}
+  }
