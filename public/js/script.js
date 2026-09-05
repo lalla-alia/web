@@ -54,7 +54,8 @@ const ICONS = {
   team: '<svg viewBox="0 0 24 24" width="16" height="16"><circle cx="9" cy="8" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M3.5 19c0-3 2.5-5 5.5-5s5.5 2 5.5 5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="17" cy="8.5" r="2.3" fill="none" stroke="currentColor" stroke-width="2" opacity=".7"/><path d="M16 13.5c2.3.3 3.8 2 3.8 4.5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" opacity=".7"/></svg>',
   gamepad: '<svg viewBox="0 0 24 24" width="16" height="16"><rect x="3" y="8" width="18" height="9.5" rx="4.5" fill="none" stroke="currentColor" stroke-width="2"/><line x1="7.2" y1="11.5" x2="7.2" y2="15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><line x1="5.4" y1="13.25" x2="9" y2="13.25" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="15" cy="12.2" r="1" fill="currentColor"/><circle cx="17.3" cy="14.4" r="1" fill="currentColor"/></svg>',
   arrowEnd: '<svg viewBox="0 0 24 24" width="16" height="16"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-  globe: '<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/></svg>'
+  globe: '<svg viewBox="0 0 24 24" width="18" height="18"><circle cx="12" cy="12" r="9" fill="none" stroke="currentColor" stroke-width="2"/><ellipse cx="12" cy="12" rx="4" ry="9" fill="none" stroke="currentColor" stroke-width="2"/><line x1="3" y1="12" x2="21" y2="12" stroke="currentColor" stroke-width="2"/></svg>',
+  replace: '<svg viewBox="0 0 24 24" width="18" height="18"><path d="M4 7h13l-3-3M20 17H7l3 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
 };
 
 const STORAGE_KEY = 'offline_site_data_v6';
@@ -223,10 +224,12 @@ function updateAdminUi(){
   const saveBtnEl = document.getElementById('saveBtn');
   const inboxBtnEl = document.getElementById('inboxBtn');
   const langBtnEl = document.getElementById('langBtn');
+  const replaceBtnEl = document.getElementById('replaceBtn');
   const editToolbarEl = document.getElementById('editToolbar');
   if(saveBtnEl) saveBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
   if(inboxBtnEl) inboxBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
   if(langBtnEl) langBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
+  if(replaceBtnEl) replaceBtnEl.style.display = isAdminAuthed ? 'flex' : 'none';
   if(editToolbarEl) editToolbarEl.classList.toggle('show', isAdminAuthed);
   updatePublishIndicator();
 }
@@ -2466,6 +2469,7 @@ document.getElementById('searchCancel').innerHTML = ICONS.close;
 document.getElementById('saveBtn').innerHTML = ICONS.publish;
 document.getElementById('inboxBtn').innerHTML = ICONS.inbox;
 document.getElementById('langBtn').innerHTML = ICONS.globe;
+document.getElementById('replaceBtn').innerHTML = ICONS.replace;
 initGlobalEditToolbar();
 
 document.addEventListener('keydown', (e)=>{
@@ -2497,6 +2501,72 @@ document.getElementById('langBtn').onclick=()=>{
   applySiteDirection();
   save();
   showToast('✓ تم تغيير لغة الموقع إلى: ' + v);
+  renderAll();
+};
+
+/* ---------------- Find & Replace (current page only) ---------------- */
+/* يستبدل كل ظهور لنص بآخر داخل كل الحقول النصية للصفحة الحالية فقط:
+   العنوان، الوصف الفرعي، المحتوى، أسئلة/أجوبة، الشخصيات، أقسام اللعبة.
+   يعيد عدد الاستبدالات التي حدثت فعليًا. */
+function countOccurrences(str, find){
+  if(!str || !find) return 0;
+  return str.split(find).length - 1;
+}
+function replaceInString(str, find, repl){
+  if(!str) return str;
+  return str.split(find).join(repl);
+}
+function performFindReplace(p, find, repl){
+  let count = 0;
+  function applyTo(obj, key){
+    if(typeof obj[key] !== 'string' || !obj[key]) return;
+    count += countOccurrences(obj[key], find);
+    obj[key] = replaceInString(obj[key], find, repl);
+  }
+  applyTo(p, 'title');
+  applyTo(p, 'subtitle');
+  applyTo(p, 'content');
+  if(p.type==='qa'){
+    (p.qa||[]).forEach(item=>{ applyTo(item,'q'); applyTo(item,'a'); });
+  } else if(p.type==='chars'){
+    (p.characters||[]).forEach(ch=>{
+      applyTo(ch,'name'); applyTo(ch,'bio'); applyTo(ch,'ability');
+      if(ch.stats){ applyTo(ch.stats,'height'); applyTo(ch.stats,'team'); }
+    });
+    (p.teams||[]).forEach((t,i)=>{
+      count += countOccurrences(t, find);
+      p.teams[i] = replaceInString(t, find, repl);
+    });
+  } else if(p.type==='game'){
+    (p.sections||[]).forEach(sec=>{ applyTo(sec,'title'); applyTo(sec,'body'); });
+  }
+  return count;
+}
+
+const replaceModalBg = document.getElementById('replaceModalBg');
+const replaceFindInput = document.getElementById('replaceFindInput');
+const replaceWithInput = document.getElementById('replaceWithInput');
+const replaceStatus = document.getElementById('replaceStatus');
+document.getElementById('replaceBtn').onclick=()=>{
+  replaceFindInput.value=''; replaceWithInput.value=''; replaceStatus.textContent='';
+  replaceModalBg.classList.add('show');
+  setTimeout(()=> replaceFindInput.focus(), 50);
+};
+document.getElementById('replaceCancel').onclick=()=> replaceModalBg.classList.remove('show');
+document.getElementById('replaceConfirm').onclick=()=>{
+  const find = replaceFindInput.value;
+  const repl = replaceWithInput.value;
+  if(!find){ replaceStatus.textContent='Enter the text to find.'; replaceFindInput.focus(); return; }
+  const p = findPage(state.activePage);
+  if(!p){ replaceStatus.textContent='No active page found.'; return; }
+  const count = performFindReplace(p, find, repl);
+  if(count===0){
+    replaceStatus.textContent='No matches found on this page.';
+    return;
+  }
+  save();
+  replaceModalBg.classList.remove('show');
+  showToast(`✓ Replaced ${count} occurrence${count===1?'':'s'}`);
   renderAll();
 };
 

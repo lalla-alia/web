@@ -21,7 +21,8 @@
     <button class="topbar-icon-btn" id="askBtn" title="اطرح سؤالك"></button>
     <span class="topbar-sep"></span>
     <span id="publishBadge" class="publish-badge" style="display:none;"></span>
-    <button class="topbar-icon-btn" id="langBtn" title="لغة الموقع" style="display:none;"></button>
+    <button class="topbar-icon-btn" id="langBtn" title="Site Language" style="display:none;"></button>
+    <button class="topbar-icon-btn" id="replaceBtn" title="Find & Replace" style="display:none;"></button>
     <button class="topbar-icon-btn" id="saveBtn" title="حفظ" style="display:none;"></button>
     <button class="topbar-icon-btn" id="inboxBtn" title="صندوق الأسئلة" style="display:none;"></button>
     <button class="topbar-icon-btn" id="authBtn" title="تسجيل الدخول"></button>
@@ -150,6 +151,19 @@
     <div class="modal-actions">
       <button id="accountCancel">إغلاق</button>
       <button class="primary" id="accountLogoutBtn">تسجيل الخروج</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-bg" id="replaceModalBg">
+  <div class="modal">
+    <h4>Find &amp; Replace (this page)</h4>
+    <input type="text" id="replaceFindInput" placeholder="Find this text">
+    <input type="text" id="replaceWithInput" placeholder="Replace with">
+    <div class="empty-hint" id="replaceStatus" style="margin:6px 0 0;"></div>
+    <div class="modal-actions">
+      <button id="replaceCancel">Cancel</button>
+      <button class="primary" id="replaceConfirm">Replace All</button>
     </div>
   </div>
 </div>
